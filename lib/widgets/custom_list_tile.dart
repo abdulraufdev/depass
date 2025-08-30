@@ -20,9 +20,7 @@ class CustomListTile extends StatelessWidget {
               Navigator.of(context).push(
                 CupertinoPageRoute(
                   builder: (context) => PasswordScreen(id: title)),
-              ).catchError((err){
-                print(err);
-              });
+              );
             },
           );
   }

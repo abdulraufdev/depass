@@ -1,7 +1,9 @@
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
+import 'package:depass/widgets/custom_drawer.dart';
 import 'package:depass/widgets/custom_list.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -14,12 +16,38 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<String> colors = ['Red', 'Green', 'Blue', 'Yellow'];
   int _selectedIndex = 0;
+
+  void _showCustomPopup(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: CupertinoColors.black.withOpacity(0.4),
+        pageBuilder: (_, __, ___) => CustomPopup(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final offsetAnimation = Tween<Offset>(
+            begin: Offset(1.0, 0.0), // from right
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.fastEaseInToSlowEaseOut,
+          ));
+          return SlideTransition(
+            position: offsetAnimation,
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         leading: Text('Home'),
-        trailing: Icon(LucideIcons.menu),
+        trailing: CupertinoButton(onPressed: (){
+          _showCustomPopup(context);
+        }, child: Icon(LucideIcons.menu)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),

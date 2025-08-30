@@ -6,6 +6,7 @@ class DepassTextTheme {
 
   static CupertinoTextThemeData regular = CupertinoTextThemeData(
     textStyle: TextStyle(
+      fontFamily: 'Inter',
       fontSize: 16,
       fontWeight: FontWeight.normal,
       color: DepassConstants.text,
