@@ -3,7 +3,6 @@ import 'package:depass/utils/constants.dart';
 import 'package:depass/widgets/custom_drawer.dart';
 import 'package:depass/widgets/custom_list.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       PageRouteBuilder(
         opaque: false,
-        barrierColor: CupertinoColors.black.withOpacity(0.4),
+        barrierColor: CupertinoColors.black.withValues(alpha: 0.4),
         pageBuilder: (_, __, ___) => CustomPopup(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final offsetAnimation = Tween<Offset>(
@@ -44,10 +43,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        leading: Text('Home'),
+        padding: EdgeInsetsDirectional.symmetric(horizontal: 12.0),
+        leading: Text('Home', style: TextStyle(fontWeight: FontWeight.bold),),
         trailing: CupertinoButton(onPressed: (){
           _showCustomPopup(context);
-        }, child: Icon(LucideIcons.menu)),
+        },
+        padding: EdgeInsets.zero,
+         child: Icon(LucideIcons.menu)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),

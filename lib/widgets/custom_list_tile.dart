@@ -1,26 +1,23 @@
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
-import 'package:depass/views/password/password_screen.dart';
 import 'package:flutter/cupertino.dart';
 
 class CustomListTile extends StatelessWidget {
-  const CustomListTile({super.key, required this.title, required this.subtitle});
+  const CustomListTile({super.key, required this.title, this.subtitle, this.onTap});
 
   final String title;
-  final String subtitle;
+  final String? subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return CupertinoListTile(
             padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             backgroundColor: DepassConstants.fadedBackground,
-            subtitle: Text(subtitle),
+            subtitle: subtitle != null ? Text(subtitle!) : null,
             title: Text(title, style: DepassTextTheme.paragraph),
-            onTap: (){
-              Navigator.of(context).push(
-                CupertinoPageRoute(
-                  builder: (context) => PasswordScreen(id: title)),
-              );
+            onTap: onTap ?? (){
+              print('clicked');
             },
           );
   }

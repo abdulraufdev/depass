@@ -1,5 +1,3 @@
-import 'package:depass/theme/text_theme.dart';
-import 'package:depass/utils/constants.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -16,6 +14,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         trailing: CupertinoButton(onPressed: () {},
+        padding: EdgeInsets.zero,
           child: Text('Save'),),
       ),
       child: Padding(
