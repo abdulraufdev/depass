@@ -4,6 +4,9 @@ import 'package:depass/widgets/custom_drawer.dart';
 import 'package:depass/widgets/custom_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:depass/services/database_service.dart';
+import 'package:depass/models/pass.dart';
+import 'package:depass/models/vault.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,8 +16,43 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<String> colors = ['Red', 'Green', 'Blue', 'Yellow'];
+  final DBService _databaseService = DBService();
+  final TextEditingController _searchController = TextEditingController();
+  List<Pass> _passwords = [];
+  List<Pass> _filteredPasswords = [];
+  List<Vault> _vaults = [];
+  String _selectedCategory = 'All';
+  bool _showFavoritesOnly = false;
+  bool _isLoading = true;
+
   int _selectedIndex = 0;
+
+    @override
+  void initState() {
+    super.initState();
+    _loadVaults();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadVaults() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final vaults = await _databaseService.getAllVaults();
+      setState(() {
+        _vaults = vaults;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      print('Failed to load vaults: $e');
+    }
+  }
 
   void _showCustomPopup(BuildContext context) {
     Navigator.of(context).push(
@@ -77,14 +115,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           });
                           print("selected $index");
                         },
-                        children: colors.map((color)=> Center(
-                          child: Text(color
-                          , 
+                        children: _vaults.map((vault)=> Center(
+                          child: Text(vault.VaultTitle, 
                           style: TextStyle(
                             color: DepassConstants.text,
                             fontWeight: FontWeight.w600
                           ),),
-                        )).toList(),
+                        )).toList() + <Center>[
+                          Center(
+                            child: Text("All Vaults",
+                            style: TextStyle(
+                              color: DepassConstants.text,
+                              fontWeight: FontWeight.w600
+                            ),),
+                          )
+                        ],
                       ),
                     );
                   },
@@ -94,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(colors[_selectedIndex], style: TextStyle(fontWeight: FontWeight.bold),),
+                  Text(_vaults[_selectedIndex].VaultTitle, style: TextStyle(fontWeight: FontWeight.bold),),
                   Icon(LucideIcons.chevronsUpDown)
                 ],
               ),

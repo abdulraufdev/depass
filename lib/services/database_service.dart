@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:depass/models/note.dart';
+import 'package:depass/models/vault.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 
@@ -18,6 +20,7 @@ class DBService {
   // Table names
   static const String _notesTable = 'notes';
   static const String _vaultsTable = 'vaults';
+  static const String _passTable = 'pass';
 
   // Get database instance - Thread-safe initialization
   Future<Database> get database async {
@@ -57,52 +60,43 @@ class DBService {
   Future<void> _onCreate(Database db, int version) async {
     // Create vaults table
     await db.execute('''
-      CREATE TABLE $_vaultsTable (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        description TEXT,
-        color TEXT,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL,
-        isDefault INTEGER NOT NULL DEFAULT 0
+      CREATE TABLE IF NOT EXISTS $_vaultsTable (
+        VaultId INTEGER PRIMARY KEY AUTOINCREMENT,
+        VaultTitle TEXT NOT NULL,
+        CreatedAt INTEGER NOT NULL,
+        UpdatedAt INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $_passTable (
+        PassId INTEGER PRIMARY KEY AUTOINCREMENT,
+        VaultId INTEGER NOT NULL,
+        PassTitle TEXT NOT NULL,
+        CreatedAt INTEGER NOT NULL,
+        FOREIGN KEY (VaultId) REFERENCES $_vaultsTable (VaultId)
       )
     ''');
 
     // Create notes table
     await db.execute('''
-      CREATE TABLE $_notesTable (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        content TEXT NOT NULL,
-        category TEXT,
-        tags TEXT,
-        isPinned INTEGER NOT NULL DEFAULT 0,
-        isFavorite INTEGER NOT NULL DEFAULT 0,
-        createdAt INTEGER NOT NULL,
-        updatedAt INTEGER NOT NULL,
-        color TEXT,
-        vaultId INTEGER,
-        FOREIGN KEY (vaultId) REFERENCES $_vaultsTable (id) ON DELETE SET NULL
+      CREATE TABLE IF NOT EXISTS $_notesTable (
+        NoteId INTEGER PRIMARY KEY AUTOINCREMENT,
+        Description TEXT NOT NULL,
+        Type TEXT NOT NULL CHECK (Type IN ('text', 'password', 'email', 'website')),
+        CreatedAt INTEGER NOT NULL,
+        UpdatedAt INTEGER NOT NULL,
+        PassId INTEGER,
+        FOREIGN KEY (PassId) REFERENCES $_passTable (PassId)
       )
     ''');
-
-    // Create indexes for better performance
-    await db.execute('CREATE INDEX idx_notes_title ON $_notesTable (title)');
-    await db.execute('CREATE INDEX idx_notes_category ON $_notesTable (category)');
-    await db.execute('CREATE INDEX idx_notes_vault ON $_notesTable (vaultId)');
-    await db.execute('CREATE INDEX idx_notes_pinned ON $_notesTable (isPinned)');
-    await db.execute('CREATE INDEX idx_notes_favorite ON $_notesTable (isFavorite)');
-    await db.execute('CREATE INDEX idx_notes_created ON $_notesTable (createdAt)');
-    await db.execute('CREATE INDEX idx_notes_updated ON $_notesTable (updatedAt)');
 
     // Create default vault
     final now = DateTime.now().millisecondsSinceEpoch;
     await db.insert(_vaultsTable, {
-      'name': 'Default',
-      'description': 'Default vault for notes',
-      'createdAt': now,
-      'updatedAt': now,
-      'isDefault': 1,
+      'VaultTitle': 'Default',
+      'CreatedAt': now,
+      'UpdatedAt': now,
     });
   }
 
@@ -147,84 +141,175 @@ class DBService {
   // ========== VAULT CRUD OPERATIONS ==========
 
   // Create a new vault
-  
+  Future<void> createVault(String title) async {
+    final db = await database;
+    await db.insert(_vaultsTable, {
+      'VaultTitle': title,
+      'CreatedAt': DateTime.now().millisecondsSinceEpoch,
+      'UpdatedAt': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
 
   // Get all vaults
-  
+  Future<List<Vault>> getAllVaults() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(_vaultsTable);
+    return List.generate(maps.length, (i) {
+      return Vault.fromMap(maps[i]);
+    });
+  }
 
   // Get vault by ID
-  
-  // Get default vault
-  
+  Future<Vault?> getVaultById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _vaultsTable,
+      where: 'VaultId = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return Vault.fromMap(maps.first);
+    }
+    return null;
+  }
 
   // Update vault
+  Future<void> updateVault(int id, String newTitle) async {
+    final db = await database;
+    await db.update(
+      _vaultsTable,
+      {
+        'VaultTitle': newTitle,
+        'UpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'VaultId = ?',
+      whereArgs: [id],
+    );
+  }
   
-  // Delete vault (and move its notes to default vault)
-  
-    // Move notes to default vault
-  
+  // Delete vault (only if the vault is empty)
+  Future<void> deleteVault(int id) async {
+    final db = await database;
+
+    // Check if the vault is empty
+    final List<Map<String, dynamic>> passes = await db.query(
+      _passTable,
+      where: 'VaultId = ?',
+      whereArgs: [id],
+    );
+
+    if (passes.isEmpty) {
+      // If empty, delete the vault
+      await db.delete(
+        _vaultsTable,
+        where: 'VaultId = ?',
+        whereArgs: [id],
+      );
+    } else {
+      // If not empty, you might want to handle this case
+      // For example, you could show a message to the user
+    }
+  }
 
   // ========== NOTE CRUD OPERATIONS ==========
 
   // Create a new note
-
+  Future<void> createNote({
+    required String description,
+    required String type,
+    int? passId,
+  }) async {
+    final db = await database;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.insert(_notesTable, {
+      'Description': description,
+      'Type': type,
+      'CreatedAt': now,
+      'UpdatedAt': now,
+      'PassId': passId,
+    });
+  }
 
   // Get all notes
+  Future<List<Note>> getAllNotes() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(_notesTable);
+    return List.generate(maps.length, (i) {
+      return Note.fromMap(maps[i]);
+    });
+  }
 
   // Get note by ID
-
-  // Get notes by vault ID
-  
-  // Get pinned notes
-  
-
-  // Get favorite notes
-
-
-  // Get notes by category
- 
-
-  // Search notes by title and content
-
-
-  // Search notes by tags
-
-
-  // Get recent notes (last 30 days)
-  
+  Future<Note?> getNoteById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _notesTable,
+      where: 'NoteId = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return Note.fromMap(maps.first);
+    }
+    return null;
+  }
+  // Get notes by pass ID
+  Future<List<Note>> getNotesByPassId(int passId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      _notesTable,
+      where: 'PassId = ?',
+      whereArgs: [passId],
+    );
+    return List.generate(maps.length, (i) {
+      return Note.fromMap(maps[i]);
+    });
+  }
 
   // Update note
-
-
-  // Toggle note pin status
-
-
-  // Toggle note favorite status
-
-
-  // Move note to vault
+  Future<void> updateNote(int id, String newDescription, String newType) async {
+    final db = await database;
+    await db.update(
+      _notesTable,
+      {
+        'Description': newDescription,
+        'Type': newType,
+        'UpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'NoteId = ?',
+      whereArgs: [id],
+    );
+  }
 
 
   // Delete note
-
-  // Delete notes by vault ID
-
+  Future<void> deleteNote(int id) async {
+    final db = await database;
+    await db.delete(
+      _notesTable,
+      where: 'NoteId = ?',
+      whereArgs: [id],
+    );
+  }
 
   // ========== UTILITY FUNCTIONS ==========
 
-  // Get total notes count
+  // Get total pass count
+  Future<int> getTotalPassCount() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT COUNT(*) as count FROM $_passTable');
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
 
 
-  // Get notes count by vault
-
-
-  // Get all unique categories
-  
-
-  // Get all unique tags
-
-
-  // Get database statistics
+  // Get pass count by vault
+  Future<int> getPassCountByVault(int vaultId) async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM $_passTable WHERE VaultID = ?',
+      [vaultId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
 
 
   // Backup database to JSON

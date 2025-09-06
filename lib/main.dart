@@ -1,5 +1,5 @@
 import 'package:depass/theme/theme.dart';
-import 'package:depass/views/app.dart';
+import 'package:depass/views/auth/auth_screen.dart';
 import 'package:flutter/cupertino.dart';
 
 void main() {
@@ -15,7 +15,7 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: DepassTheme.themeData,
       title: 'Depass',
-      home: App(),
+      home: AuthScreen(),
     );
   }
 }

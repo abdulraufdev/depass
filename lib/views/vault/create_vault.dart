@@ -1,4 +1,7 @@
+import 'package:depass/services/database_service.dart';
 import 'package:depass/theme/text_theme.dart';
+import 'package:depass/utils/constants.dart';
+import 'package:depass/views/app.dart';
 import 'package:flutter/cupertino.dart';
 
 class CreateVaultScreen extends StatefulWidget {
@@ -10,6 +13,27 @@ class CreateVaultScreen extends StatefulWidget {
 
 class _CreateVaultScreenState extends State<CreateVaultScreen> {
   late final TextEditingController _controller = TextEditingController();
+  final DBService _databaseService = DBService();
+  bool _isLoading = true;
+
+  Future<void> _createVault() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _databaseService.createVault(_controller.text);
+      Navigator.of(context).pushReplacement(CupertinoPageRoute(
+        builder: (context) => App(),
+      ));
+    } catch (e) {
+      print('Error: $e :)');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +61,11 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
             CupertinoButton.filled(
               minimumSize: Size(double.infinity, 44),
               borderRadius: BorderRadius.circular(8),
-              child: Text('Save'),
+              child: (_isLoading ?
+              CupertinoActivityIndicator(color: DepassConstants.background,) : Text('Save')),
               onPressed: () {
                 // Save the edited vault
+                _createVault();
               },
             )
           ],

@@ -1,6 +1,7 @@
 import 'package:depass/widgets/custom_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:depass/services/auth_service.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -10,6 +11,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  AuthService _authService = AuthService();
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -25,7 +27,11 @@ class _SearchScreenState extends State<SearchScreen> {
               prefixIcon: Icon(LucideIcons.search),
               suffixIcon: Icon(LucideIcons.x),
             ),
-            CustomList()
+            CustomList(),
+            CupertinoButton(child: Text('click to delete'),
+             onPressed: (){
+              _authService.clearAllData();
+             })
           ],
         ),
       )
