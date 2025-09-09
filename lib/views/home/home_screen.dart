@@ -16,43 +16,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final DBService _databaseService = DBService();
-  final TextEditingController _searchController = TextEditingController();
-  List<Pass> _passwords = [];
-  List<Pass> _filteredPasswords = [];
-  List<Vault> _vaults = [];
-  String _selectedCategory = 'All';
-  bool _showFavoritesOnly = false;
+  DBService db = DBService.instance;
   bool _isLoading = true;
 
   int _selectedIndex = 0;
 
-    @override
-  void initState() {
-    super.initState();
-    _loadVaults();
+  Future<List<Vault>> getVaults() async {
+    List<Vault> vaults = [Vault(VaultId: 0, VaultTitle: "All Vaults", CreatedAt: DateTime.now().millisecondsSinceEpoch, UpdatedAt: DateTime.now().millisecondsSinceEpoch)];
+    List<Vault> myVaults = await db.getAllVaults();
+    vaults.addAll(myVaults);
+    return vaults;
+
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadVaults() async {
-    setState(() => _isLoading = true);
-    
-    try {
-      final vaults = await _databaseService.getAllVaults();
-      setState(() {
-        _vaults = vaults;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      print('Failed to load vaults: $e');
-    }
-  }
 
   void _showCustomPopup(BuildContext context) {
     Navigator.of(context).push(
@@ -94,55 +70,52 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           spacing: 32,
           children: [
-            CupertinoButton.filled(
-              minimumSize: const Size(double.infinity, 64),
-              foregroundColor: DepassConstants.text,
-              color: DepassConstants.dropdownButton,
-              onPressed: () {
-                showCupertinoModalPopup(
-                  context: context,
-                  builder: (context) {
-                    return SizedBox(
-                      height: 200.0,
-                      child: CupertinoPicker(
-                        scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
-                        backgroundColor: DepassConstants.background,
-                        itemExtent: 42.0,
-                        
-                        onSelectedItemChanged: (int index) {
-                          setState(() {
-                            _selectedIndex = index;
-                          });
-                          print("selected $index");
-                        },
-                        children: _vaults.map((vault)=> Center(
-                          child: Text(vault.VaultTitle, 
-                          style: TextStyle(
-                            color: DepassConstants.text,
-                            fontWeight: FontWeight.w600
-                          ),),
-                        )).toList() + <Center>[
-                          Center(
-                            child: Text("All Vaults",
-                            style: TextStyle(
-                              color: DepassConstants.text,
-                              fontWeight: FontWeight.w600
-                            ),),
-                          )
-                        ],
-                      ),
+            FutureBuilder(
+              future: getVaults(),
+              builder: (context, asyncSnapshot) {
+                return CupertinoButton.filled(
+                  minimumSize: const Size(double.infinity, 64),
+                  foregroundColor: DepassConstants.text,
+                  color: DepassConstants.dropdownButton,
+                  onPressed: () {
+                    showCupertinoModalPopup(
+                      context: context,
+                      builder: (context) {
+                            return SizedBox(
+                              height: 200.0,
+                              child: CupertinoPicker(
+                                scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
+                                backgroundColor: DepassConstants.background,
+                                itemExtent: 42.0,
+                                
+                                onSelectedItemChanged: (int index) {
+                                  setState(() {
+                                    _selectedIndex = index;
+                                  });
+                                  print("selected $index");
+                                },
+                                children: asyncSnapshot.data!.map((vault)=> Center(
+                                  child: Text(vault.VaultTitle, 
+                                  style: TextStyle(
+                                    color: DepassConstants.text,
+                                    fontWeight: FontWeight.w600
+                                  ),),
+                                )).toList(),
+                              ),
+                            );
+                          }
                     );
                   },
+                
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(asyncSnapshot.data![_selectedIndex].VaultTitle, style: TextStyle(fontWeight: FontWeight.bold),),
+                      Icon(LucideIcons.chevronsUpDown)
+                    ],
+                  ),
                 );
-              },
-
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(_vaults[_selectedIndex].VaultTitle, style: TextStyle(fontWeight: FontWeight.bold),),
-                  Icon(LucideIcons.chevronsUpDown)
-                ],
-              ),
+              }
             ),
             Column(
               spacing: 12,

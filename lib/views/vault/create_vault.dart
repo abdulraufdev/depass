@@ -12,9 +12,9 @@ class CreateVaultScreen extends StatefulWidget {
 }
 
 class _CreateVaultScreenState extends State<CreateVaultScreen> {
+  DBService db = DBService.instance;
   late final TextEditingController _controller = TextEditingController();
-  final DBService _databaseService = DBService();
-  bool _isLoading = true;
+  bool _isLoading = false;
 
   Future<void> _createVault() async {
     setState(() {
@@ -22,10 +22,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
     });
 
     try {
-      await _databaseService.createVault(_controller.text);
-      Navigator.of(context).pushReplacement(CupertinoPageRoute(
-        builder: (context) => App(),
-      ));
+      await db.createVault(_controller.text);
     } catch (e) {
       print('Error: $e :)');
     } finally {
@@ -66,6 +63,9 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
               onPressed: () {
                 // Save the edited vault
                 _createVault();
+                Navigator.of(context).pushReplacement(CupertinoPageRoute(
+                  builder: (context) => App(),
+                ));
               },
             )
           ],

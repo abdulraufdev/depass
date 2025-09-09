@@ -24,7 +24,7 @@ class CustomPopup extends StatelessWidget {
         child: Align(
           alignment: Alignment.centerRight,
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 36),
             width: 300,
             height: double.infinity,
             color: DepassConstants.background,
@@ -37,7 +37,7 @@ class CustomPopup extends StatelessWidget {
                   children: [
                     Text('Options', style: DepassTextTheme.heading1,),
                     CupertinoButton(child: 
-                    Icon(LucideIcons.chevronsRight), onPressed: (){
+                    Icon(LucideIcons.chevronsRight, size: 24,), onPressed: (){
                       Navigator.of(context).pop();
                     })
                   ],
@@ -46,42 +46,49 @@ class CustomPopup extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     CupertinoListTile(title: Text('Generator'),
+                    padding: EdgeInsets.zero,
                     leading: Icon(LucideIcons.rectangleEllipsis), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const GeneratePasswordScreen())
                       );
                     }),
                     CupertinoListTile(title: Text('Theme'),
+                        padding: EdgeInsets.zero,
                     leading: Icon(LucideIcons.sunDim), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const ThemeScreen())
                       );
                     }),
                     CupertinoListTile(title: Text('Security'),
+                        padding: EdgeInsets.zero,
                     leading: Icon(LucideIcons.rectangleEllipsis), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const SecurityScreen())
                       );
                     }),
                     CupertinoListTile(title: Text('Manage vaults'),
+                        padding: EdgeInsets.zero,
                     leading: Icon(LucideIcons.package), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const VaultScreen())
                       );
                     }),
                     CupertinoListTile(title: Text('Backup & Sync'),
+                        padding: EdgeInsets.zero,
                     leading: Icon(LucideIcons.rectangleEllipsis), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const BackupSyncScreen())
                       );
                     }),
                     CupertinoListTile(title: Text('Restore'),
+                        padding: EdgeInsets.zero,
                     leading: Icon(LucideIcons.rectangleEllipsis), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const RestoreScreen())
                       );
                     }),
                     CupertinoListTile(title: Text('About'),
+                        padding: EdgeInsets.zero,
                     leading: Icon(LucideIcons.info), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const AboutScreen())

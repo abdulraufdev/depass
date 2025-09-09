@@ -1,3 +1,5 @@
+import 'package:depass/models/vault.dart';
+import 'package:depass/services/database_service.dart';
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:depass/views/vault/create_vault.dart';
@@ -14,6 +16,30 @@ class VaultScreen extends StatefulWidget {
 }
 
 class _VaultScreenState extends State<VaultScreen> {
+  DBService db = DBService.instance;
+  List<Vault> _vaults = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVaults();
+  }
+  Future<void> _loadVaults() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final vaults = await db.getAllVaults();
+      setState(() {
+        _vaults = vaults;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      print('Failed to load vaults: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -23,7 +49,6 @@ class _VaultScreenState extends State<VaultScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: Expanded(
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,28 +76,32 @@ class _VaultScreenState extends State<VaultScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    spacing: 2,
-                    children: List.generate(3, (index) {
-                      return CustomListTile(
-                        title: 'Vault $index',
-                        onTap: () {
-                          Navigator.of(context).push(
-                            CupertinoPageRoute(
-                              builder: (context) =>
-                                  EditVaultScreen(id: index.toString()),
-                            ),
+                  child: FutureBuilder(
+                    future: db.getAllVaults(),
+                    builder: (context, asyncSnapshot) {
+                      return Column(
+                        spacing: 2,
+                        children: List.generate(asyncSnapshot.data!.length, (index) {
+                          return CustomListTile(
+                            title: asyncSnapshot.data![index].VaultTitle,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) =>
+                                      EditVaultScreen(id: asyncSnapshot.data![index].VaultId.toString()),
+                                ),
+                              );
+                            },
                           );
-                        },
+                        }),
                       );
-                    }),
+                    }
                   ),
                 ),
               ],
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }

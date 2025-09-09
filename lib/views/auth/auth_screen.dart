@@ -1,9 +1,7 @@
-import 'package:depass/utils/constants.dart';
 import 'package:depass/views/vault/create_vault.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../services/auth_service.dart';
 import '../app.dart';
 
@@ -271,6 +269,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     return CupertinoPageScaffold(
+      resizeToAvoidBottomInset: false,
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

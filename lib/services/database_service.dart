@@ -1,17 +1,17 @@
 import 'dart:io';
 import 'package:depass/models/note.dart';
+import 'package:depass/models/pass.dart';
 import 'package:depass/models/vault.dart';
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 
 class DBService {
-  static final DBService _instance = DBService._internal();
-  factory DBService() => _instance;
-  DBService._internal();
+  DBService._();
+  static final DBService instance = DBService._();
 
   static Database? _database;
-  static Future<Database>? _initializationFuture;
-  static const String _databaseName = 'depass_notes.db';
+  static const String _databaseName = 'dev.db';
   static const int _databaseVersion = 1;
 
   // Database password for encryption (in production, this should be derived from user's master password)
@@ -23,36 +23,25 @@ class DBService {
   static const String _passTable = 'pass';
 
   // Get database instance - Thread-safe initialization
-  Future<Database> get database async {
+  Future<Database> getDB() async {
     if (_database != null) {
       return _database!;
     }
-    
-    // If initialization is already in progress, wait for it
-    if (_initializationFuture != null) {
-      return await _initializationFuture!;
-    }
-    
     // Start initialization
-    _initializationFuture = _initDatabase();
-    _database = await _initializationFuture!;
-    _initializationFuture = null;
-    
+    _database = await _openDatabase();
     return _database!;
   }
 
   // Initialize database
-  Future<Database> _initDatabase() async {
-    final databasesPath = await getDatabasesPath();
-    final path = join(databasesPath, _databaseName);
+  Future<Database> _openDatabase() async {
+    final databasesPath = await getApplicationDocumentsDirectory();
+    final path = join(databasesPath.path, _databaseName);
 
     return await openDatabase(
       path,
       version: _databaseVersion,
       password: _databasePassword,
       onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-      onOpen: _onOpen,
     );
   }
 
@@ -100,20 +89,12 @@ class DBService {
     });
   }
 
-  // Handle database upgrades
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Handle database schema migrations here
-    if (oldVersion < 2) {
-      // Example: Add new column in version 2
-      // await db.execute('ALTER TABLE $_notesTable ADD COLUMN newColumn TEXT');
-    }
-  }
 
-  // Handle database open
-  Future<void> _onOpen(Database db) async {
-    // Enable foreign key constraints
-    await db.execute('PRAGMA foreign_keys = ON');
-  }
+  // // Handle database open
+  // Future<void> _onOpen(Database db) async {
+  //   // Enable foreign key constraints
+  //   await db.execute('PRAGMA foreign_keys = ON');
+  // }
 
   // Close database
   Future<void> close() async {
@@ -121,7 +102,6 @@ class DBService {
       await _database!.close();
       _database = null;
     }
-    _initializationFuture = null;
   }
 
   // Delete database file
@@ -142,7 +122,7 @@ class DBService {
 
   // Create a new vault
   Future<void> createVault(String title) async {
-    final db = await database;
+    final db = await getDB();
     await db.insert(_vaultsTable, {
       'VaultTitle': title,
       'CreatedAt': DateTime.now().millisecondsSinceEpoch,
@@ -152,7 +132,7 @@ class DBService {
 
   // Get all vaults
   Future<List<Vault>> getAllVaults() async {
-    final db = await database;
+    final db = await getDB();
     final List<Map<String, dynamic>> maps = await db.query(_vaultsTable);
     return List.generate(maps.length, (i) {
       return Vault.fromMap(maps[i]);
@@ -161,7 +141,7 @@ class DBService {
 
   // Get vault by ID
   Future<Vault?> getVaultById(int id) async {
-    final db = await database;
+    final db = await getDB();
     final List<Map<String, dynamic>> maps = await db.query(
       _vaultsTable,
       where: 'VaultId = ?',
@@ -175,7 +155,7 @@ class DBService {
 
   // Update vault
   Future<void> updateVault(int id, String newTitle) async {
-    final db = await database;
+    final db = await getDB();
     await db.update(
       _vaultsTable,
       {
@@ -189,7 +169,7 @@ class DBService {
   
   // Delete vault (only if the vault is empty)
   Future<void> deleteVault(int id) async {
-    final db = await database;
+    final db = await getDB();
 
     // Check if the vault is empty
     final List<Map<String, dynamic>> passes = await db.query(
@@ -211,6 +191,36 @@ class DBService {
     }
   }
 
+  // ========== PASS CRUD OPERATIONS ==========
+
+  // Create a new pass
+  Future<int> createPass({
+    required String title,
+  }) async {
+    final db = await getDB();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final id = await db.insert(_passTable, {
+      'PassTitle': title,
+      'CreatedAt': now,
+    });
+    return id;
+  }
+
+  // Get all passes
+
+  // Get pass by Id
+  Future<List<Pass>> getAllPasses() async {
+    final db = await getDB();
+    final List<Map<String,dynamic>> maps = await db.query(_passTable);
+    return List.generate(maps.length, (i) {
+      return Pass.fromMap(maps[i]);
+    });
+  }
+
+  // Update pass
+
+  // Delete pass
+
   // ========== NOTE CRUD OPERATIONS ==========
 
   // Create a new note
@@ -219,7 +229,7 @@ class DBService {
     required String type,
     int? passId,
   }) async {
-    final db = await database;
+    final db = await getDB();
     final now = DateTime.now().millisecondsSinceEpoch;
     await db.insert(_notesTable, {
       'Description': description,
@@ -230,9 +240,27 @@ class DBService {
     });
   }
 
+  // Create bulk notes through transaction
+  Future<void> createBulkNotes(List<Map<String,dynamic>> notes, int passId) async {
+    final db = await getDB();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.transaction((tx) async {
+      for(Map<String,dynamic> note in notes){
+        await tx.rawInsert('''
+      'INSERT INTO $_notesTable 
+      (Description, Type, CreatedAt, UpdatedAt, PassId) 
+      VALUES(?, ?, ?, ?, ?)');
+      ''',
+      [note['Description'], note['Type'], now, now, passId]);
+      }
+    }).whenComplete((){
+      print("transaction completeeeed.");;
+    });
+  }
+
   // Get all notes
   Future<List<Note>> getAllNotes() async {
-    final db = await database;
+    final db = await getDB();
     final List<Map<String, dynamic>> maps = await db.query(_notesTable);
     return List.generate(maps.length, (i) {
       return Note.fromMap(maps[i]);
@@ -241,7 +269,7 @@ class DBService {
 
   // Get note by ID
   Future<Note?> getNoteById(int id) async {
-    final db = await database;
+    final db = await getDB();
     final List<Map<String, dynamic>> maps = await db.query(
       _notesTable,
       where: 'NoteId = ?',
@@ -253,21 +281,18 @@ class DBService {
     return null;
   }
   // Get notes by pass ID
-  Future<List<Note>> getNotesByPassId(int passId) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      _notesTable,
-      where: 'PassId = ?',
-      whereArgs: [passId],
-    );
-    return List.generate(maps.length, (i) {
-      return Note.fromMap(maps[i]);
-    });
+  Future<List<Map<String,dynamic>>> getNotesByPassId(int passId) async {
+    final db = await getDB();
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    SELECT NoteId, Description, Type, PassTitle FROM $_notesTable as n 
+    INNER JOIN $_passTable as p on n.PassId = p.passId 
+    WHERE PassId = ?''', [passId]);
+    return maps;
   }
 
   // Update note
   Future<void> updateNote(int id, String newDescription, String newType) async {
-    final db = await database;
+    final db = await getDB();
     await db.update(
       _notesTable,
       {
@@ -283,7 +308,7 @@ class DBService {
 
   // Delete note
   Future<void> deleteNote(int id) async {
-    final db = await database;
+    final db = await getDB();
     await db.delete(
       _notesTable,
       where: 'NoteId = ?',
@@ -295,7 +320,7 @@ class DBService {
 
   // Get total pass count
   Future<int> getTotalPassCount() async {
-    final db = await database;
+    final db = await getDB();
     final result = await db.rawQuery('SELECT COUNT(*) as count FROM $_passTable');
     return Sqflite.firstIntValue(result) ?? 0;
   }
@@ -303,7 +328,7 @@ class DBService {
 
   // Get pass count by vault
   Future<int> getPassCountByVault(int vaultId) async {
-    final db = await database;
+    final db = await getDB();
     final result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM $_passTable WHERE VaultID = ?',
       [vaultId],
