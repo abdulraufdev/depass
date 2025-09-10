@@ -19,20 +19,16 @@ class _PasswordScreenState extends State<PasswordScreen> {
   DBService db = DBService.instance;
 
   Widget _customTitle(Map<String, dynamic> note) {
-    if (note['Type']) {
-      return note['Type'] == "password"
-          ? Text("***********")
-          : Text(note['Description']);
-    } else {
-      return Text("not found");
-    }
+    return note['Type'] == "password"
+        ? Text("***********")
+        : Text(note['Description']);
   }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        middle: Text('Password ${widget.id}'),
+        middle: Text('Password'),
       ),
       child: Padding(
         padding: EdgeInsets.all(12.0),
@@ -55,45 +51,64 @@ class _PasswordScreenState extends State<PasswordScreen> {
                       onPressed: () {
                         Navigator.of(context).push(
                           CupertinoPageRoute(
-                            builder: (context) => EditPasswordScreen(),
+                            builder: (context) => EditPasswordScreen(password: asyncSnapshot.data!),
                           ),
                         );
                       },
                     ),
                   ],
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: DepassConstants.separator,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    spacing: 2,
-                    children: List.generate(asyncSnapshot.data!.length, (
-                      index,
-                    ) {
-                      return CupertinoListTile(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        backgroundColor: DepassConstants.fadedBackground,
-                        title: _customTitle(asyncSnapshot.data![index]),
-                        trailing: CupertinoButton(
-                          child: Icon(LucideIcons.copy),
-                          onPressed: () {
-                            Clipboard.setData(
-                              ClipboardData(
-                                text: asyncSnapshot.data![index]['Type'],
+                Column(
+                    spacing: 24,
+                    children: List.generate(4, (index) {
+                      return asyncSnapshot.data!.where((note) => note['Type'] == DepassConstants.noteTypes[index]).toList().isNotEmpty ? Column(
+                        spacing: 12,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(DepassConstants.noteTypes[index]),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: DepassConstants.separator,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              children: List.generate(
+                                asyncSnapshot.data!
+                                    .where(
+                                      (note) =>
+                                          note['Type'] ==
+                                          DepassConstants.noteTypes[index],
+                                    )
+                                    .toList()
+                                    .length,
+                                (index2) {
+                                  return CupertinoListTile(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                    backgroundColor: DepassConstants.fadedBackground,
+                                    title: _customTitle(asyncSnapshot.data!.where((note) => note['Type'] == DepassConstants.noteTypes[index]).toList()[index2]),
+                                    trailing: CupertinoButton(
+                                      child: Icon(LucideIcons.copy),
+                                      onPressed: () {
+                                        Clipboard.setData(
+                                          ClipboardData(
+                                            text: asyncSnapshot.data!.where((note) => note['Type'] == DepassConstants.noteTypes[index]).toList()[index2]['Description'],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        ),
-                      );
+                            ),
+                          ),
+                        ],
+                      ) : SizedBox.shrink();
                     }),
                   ),
-                ),
               ],
             );
           },

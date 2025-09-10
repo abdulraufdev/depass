@@ -1,35 +1,31 @@
 class Pass {
-  final int id;
-  final String title;
-  final int vaultId;
-  final int createdAt;
-  final int updatedAt;
+  final int PassId;
+  final String PassTitle;
+  final int VaultId;
+  final int CreatedAt;
 
   Pass({
-    required this.id,
-    required this.title,
-    required this.vaultId,
-    required this.createdAt,
-    required this.updatedAt,
+    required this.PassId,
+    required this.PassTitle,
+    required this.VaultId,
+    required this.CreatedAt,
   });
 
   factory Pass.fromMap(Map<String, dynamic> map) {
     return Pass(
-      id: map['id'],
-      title: map['Title'],
-      vaultId: map['VaultID'],
-      createdAt: map['CreatedAt'],
-      updatedAt: map['UpdatedAt'],
+      PassId: map['PassId'],
+      PassTitle: map['PassTitle'],
+      VaultId: map['VaultId'],
+      CreatedAt: map['CreatedAt']
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'Title': title,
-      'VaultID': vaultId,
-      'CreatedAt': createdAt,
-      'UpdatedAt': updatedAt,
+      'PassId': PassId,
+      'PassTitle': PassTitle,
+      'VaultId': VaultId,
+      'CreatedAt': CreatedAt,
     };
   }
 }

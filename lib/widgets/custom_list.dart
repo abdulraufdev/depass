@@ -1,6 +1,7 @@
 import 'package:depass/models/pass.dart';
 import 'package:depass/services/database_service.dart';
 import 'package:depass/utils/constants.dart';
+import 'package:depass/views/password/password_screen.dart';
 import 'package:depass/widgets/custom_list_tile.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -30,6 +31,7 @@ class _CustomListState extends State<CustomList> {
       final passes = await db.getAllPasses();
       setState(() {
         _passes = passes;
+        print(_passes[0].toMap());
         _isLoading = false;
       });
     } catch(e){
@@ -57,12 +59,18 @@ class _CustomListState extends State<CustomList> {
             child: Text('No items found'),
           ) : Column(
             spacing: 2,
-            children: List.generate(5, (index) {
+            children: List.generate(_passes.length, (index){
               return CustomListTile(
-                title: 'Item $index',
-                subtitle: 'Subtitle $index',
+                title: _passes[index].PassTitle,
+                onTap: (){
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => PasswordScreen(id: _passes[index].PassId.toString()),
+                    )
+                  );
+                },
               );
-            }),
+            })
           )
       ),
     );

@@ -67,65 +67,67 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          spacing: 32,
-          children: [
-            FutureBuilder(
-              future: getVaults(),
-              builder: (context, asyncSnapshot) {
-                return CupertinoButton.filled(
-                  minimumSize: const Size(double.infinity, 64),
-                  foregroundColor: DepassConstants.text,
-                  color: DepassConstants.dropdownButton,
-                  onPressed: () {
-                    showCupertinoModalPopup(
-                      context: context,
-                      builder: (context) {
-                            return SizedBox(
-                              height: 200.0,
-                              child: CupertinoPicker(
-                                scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
-                                backgroundColor: DepassConstants.background,
-                                itemExtent: 42.0,
-                                
-                                onSelectedItemChanged: (int index) {
-                                  setState(() {
-                                    _selectedIndex = index;
-                                  });
-                                  print("selected $index");
-                                },
-                                children: asyncSnapshot.data!.map((vault)=> Center(
-                                  child: Text(vault.VaultTitle, 
-                                  style: TextStyle(
-                                    color: DepassConstants.text,
-                                    fontWeight: FontWeight.w600
-                                  ),),
-                                )).toList(),
-                              ),
-                            );
-                          }
-                    );
-                  },
-                
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(asyncSnapshot.data![_selectedIndex].VaultTitle, style: TextStyle(fontWeight: FontWeight.bold),),
-                      Icon(LucideIcons.chevronsUpDown)
-                    ],
-                  ),
-                );
-              }
-            ),
-            Column(
-              spacing: 12,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Recently added", style: DepassTextTheme.heading2,),
-                CustomList(),
-              ],
-            )
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            spacing: 32,
+            children: [
+              FutureBuilder(
+                future: getVaults(),
+                builder: (context, asyncSnapshot) {
+                  return CupertinoButton.filled(
+                    minimumSize: const Size(double.infinity, 64),
+                    foregroundColor: DepassConstants.text,
+                    color: DepassConstants.dropdownButton,
+                    onPressed: () {
+                      showCupertinoModalPopup(
+                        context: context,
+                        builder: (context) {
+                              return SizedBox(
+                                height: 200.0,
+                                child: CupertinoPicker(
+                                  scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
+                                  backgroundColor: DepassConstants.background,
+                                  itemExtent: 42.0,
+                                  
+                                  onSelectedItemChanged: (int index) {
+                                    setState(() {
+                                      _selectedIndex = index;
+                                    });
+                                    print("selected $index");
+                                  },
+                                  children: asyncSnapshot.data?.map((vault)=> Center(
+                                    child: Text(vault.VaultTitle, 
+                                    style: TextStyle(
+                                      color: DepassConstants.text,
+                                      fontWeight: FontWeight.w600
+                                    ),),
+                                  )).toList() ?? [Center(child: Text("No Vaults"))],
+                                ),
+                              );
+                            }
+                      );
+                    },
+                  
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(asyncSnapshot.data?[_selectedIndex].VaultTitle ?? "No Vaults", style: TextStyle(fontWeight: FontWeight.bold),),
+                        Icon(LucideIcons.chevronsUpDown)
+                      ],
+                    ),
+                  );
+                }
+              ),
+              Column(
+                spacing: 12,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Recently added", style: DepassTextTheme.heading2,),
+                  CustomList(),
+                ],
+              )
+            ],
+          ),
         ),
       ),
     );

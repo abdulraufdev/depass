@@ -11,4 +11,6 @@ class DepassConstants {
   static const Color dropdownButton = Color(0xFFEDF6F4);
   static const Color text = Color(0xFF111111);
   static const Color toast = Color(0xFF333333);
+
+  static List noteTypes = ["email", "password", "text", "website"];
 }

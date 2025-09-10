@@ -14,7 +14,7 @@ class CreatePasswordScreen extends StatefulWidget {
 }
 
 class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
-  DBService _databaseService = DBService.instance;
+  final DBService _databaseService = DBService.instance;
   int _selectedIndex = 0;
   late final List<Vault> _vaults;
   late final TextEditingController _titleController = TextEditingController();
@@ -53,7 +53,6 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
   
   Future<void> _createPass() async {
     try{
-      final int passId = await _databaseService.createPass(title: _titleController.text);
       List<TextEditingController> controllers = [
         ..._emailControllers,
         ..._passwordControllers,
@@ -64,13 +63,13 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
       if(controllers.isNotEmpty){
         allNotes = controllers.map((controller) => {
           'Description': controller.text,
-          'Type': _emailControllers.contains(controller) ? 'Email' :
-                      _passwordControllers.contains(controller) ? 'Password' :
-                      _textControllers.contains(controller) ? 'Text' : 'Website',
+          'Type': _emailControllers.contains(controller) ? 'email' :
+                      _passwordControllers.contains(controller) ? 'password' :
+                      _textControllers.contains(controller) ? 'text' : 'website',
         }).toList();
       }
 
-      await _databaseService.createBulkNotes(allNotes, passId);
+      await _databaseService.createBulkNotes(notes: allNotes,title: _titleController.text,vaultId:  _vaults[_selectedIndex].VaultId);
     } catch(e){
       print("Error while inserting: $e");
     }
