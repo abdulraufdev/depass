@@ -13,4 +13,15 @@ class DepassTheme {
     brightness: Brightness.light,
 
   );
+
+  // Dark theme
+  static CupertinoThemeData get darkTheme => const CupertinoThemeData(
+    brightness: Brightness.dark,
+    primaryColor: CupertinoColors.systemBlue,
+    scaffoldBackgroundColor: CupertinoColors.black,
+    barBackgroundColor: CupertinoColors.systemGrey6,
+    textTheme: CupertinoTextThemeData(
+      primaryColor: CupertinoColors.white,
+    ),
+  );
 }

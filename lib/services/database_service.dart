@@ -211,7 +211,7 @@ class DBService {
   Future<void> createNote({
     required String description,
     required String type,
-    int? passId,
+    required int passId,
   }) async {
     final db = await getDB();
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -283,7 +283,7 @@ class DBService {
     final db = await getDB();
     final List<Map<String, dynamic>> maps = await db.rawQuery(
       '''
-    SELECT n.NoteId as NoteId, n.Description as Description, n.Type as Type, p.PassTitle as PassTitle FROM $_notesTable as n 
+    SELECT n.NoteId as NoteId, n.Description as Description, n.Type as Type, p.PassTitle as PassTitle, p.PassId as PassId FROM $_notesTable as n 
     INNER JOIN $_passTable as p on n.PassId = p.passId 
     WHERE p.PassId = ?''',
       [passId],

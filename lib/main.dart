@@ -3,7 +3,11 @@ import 'package:depass/views/auth/auth_screen.dart';
 import 'package:flutter/cupertino.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(ChangeNotifierProvider(
+      create: (context) => ThemeProvider(),
+      child: const MainApp(),
+    )
+  );
 }
 
 class MainApp extends StatelessWidget {
@@ -11,11 +15,17 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoApp(
-      debugShowCheckedModeBanner: false,
-      theme: DepassTheme.themeData,
-      title: 'Depass',
-      home: AuthScreen(),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return CupertinoApp(
+          debugShowCheckedModeBanner: false,
+          theme: themeProvider.isDarkMode 
+              ? DepassTheme.darkTheme 
+              : DepassTheme.lightTheme,
+          title: 'Depass',
+          home: AuthScreen(),
+        );
+      },
     );
   }
 }

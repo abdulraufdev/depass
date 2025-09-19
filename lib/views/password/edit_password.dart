@@ -109,7 +109,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
         try{
           for(int i=0; i < updatedFields[type]!.length; i++){
             if( i >= notes.length){
-              await _databaseService.createNote(description: updatedFields[type]![i].text, type: type);
+              await _databaseService.createNote(description: updatedFields[type]![i].text, type: type , passId: widget.password[0]['PassId']);
             } else if(notes[i].Description == updatedFields[type]![i].text){
               print('no change');
             } else {
