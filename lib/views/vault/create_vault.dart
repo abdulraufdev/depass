@@ -1,8 +1,9 @@
-import 'package:depass/services/database_service.dart';
+import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:depass/views/app.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 
 class CreateVaultScreen extends StatefulWidget {
   const CreateVaultScreen({super.key});
@@ -12,7 +13,6 @@ class CreateVaultScreen extends StatefulWidget {
 }
 
 class _CreateVaultScreenState extends State<CreateVaultScreen> {
-  DBService db = DBService.instance;
   late final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
 
@@ -22,20 +22,23 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
     });
 
     try {
-      await db.createVault(_controller.text);
+      final vaultProvider = Provider.of<VaultProvider>(context, listen: false);
+      await vaultProvider.createVault(_controller.text);
     } catch (e) {
       print('Error: $e :)');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(),
+      navigationBar: CupertinoNavigationBar(transitionBetweenRoutes: false),
       child: Padding(
         padding:  const EdgeInsets.all(12.0),
         child: Column(

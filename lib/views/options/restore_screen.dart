@@ -11,7 +11,8 @@ class _RestoreScreenState extends State<RestoreScreen> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
+      navigationBar: CupertinoNavigationBar(
+        transitionBetweenRoutes: false,
         middle: Text('Restore'),
       ),
       child: Center(

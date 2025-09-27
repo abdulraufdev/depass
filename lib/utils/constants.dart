@@ -13,6 +13,6 @@ class DepassConstants {
   static const Color toast = Color(0xFF333333);
 
   static List noteTypes = ["email", "password", "text", "website"];
-
-  static enum DepassThemeMode { light, dark, system };
 }
+
+enum DepassThemeMode { light, dark, system }

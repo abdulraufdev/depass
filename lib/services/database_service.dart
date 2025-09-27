@@ -202,8 +202,28 @@ class DBService {
   }
 
   // Update pass
+  Future<void> updatePass(int passId, String newTitle) async {
+    final db = await getDB();
+    await db.update(
+      _passTable,
+      {
+        'PassTitle': newTitle,
+      },
+      where: 'PassId = ?',
+      whereArgs: [passId],
+    );
+  }
 
   // Delete pass
+  Future<void> deletePass(int id) async {
+    final db = await getDB();
+    
+    // First delete all notes associated with this pass
+    await db.delete(_notesTable, where: 'PassId = ?', whereArgs: [id]);
+    
+    // Then delete the pass itself
+    await db.delete(_passTable, where: 'PassId = ?', whereArgs: [id]);
+  }
 
   // ========== NOTE CRUD OPERATIONS ==========
 

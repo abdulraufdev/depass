@@ -11,7 +11,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
+      navigationBar: CupertinoNavigationBar(
+        transitionBetweenRoutes: false,
         middle: Text('Security'),
       ),
       child: Center(

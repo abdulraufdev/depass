@@ -1,9 +1,10 @@
-import 'package:depass/models/note.dart';
-import 'package:depass/models/vault.dart';
+import 'package:depass/providers/password_provider.dart';
+import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/services/database_service.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 class EditPasswordScreen extends StatefulWidget {
   const EditPasswordScreen({super.key, required this.password});
@@ -16,8 +17,11 @@ class EditPasswordScreen extends StatefulWidget {
 class _EditPasswordScreenState extends State<EditPasswordScreen> {
   final DBService _databaseService = DBService.instance;
   int _selectedIndex = 0;
-  late final List<Vault> _vaults;
   late final TextEditingController _titleController = TextEditingController(text: widget.password[0]['PassTitle']);
+  
+  // Store provider reference to avoid read-only context issues
+  PasswordProvider? _passwordProvider;
+  VaultProvider? _vaultProvider;
 
   List<TextEditingController> _emailControllers = [
     TextEditingController(),
@@ -32,6 +36,75 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
   List<TextEditingController> _websiteControllers = [];
   bool _isLoading = false;
 
+  // Validation error messages
+  Map<String, String> _validationErrors = {};
+
+  // Validation methods
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+  }
+
+  bool _isValidWebsite(String website) {
+    // Allow domains with or without protocol
+    final domainRegex = RegExp(r'^(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?$');
+    return domainRegex.hasMatch(website);
+  }
+
+  bool _validateAllFields() {
+    _validationErrors.clear();
+    bool isValid = true;
+
+    // Validate title
+    if (_titleController.text.trim().isEmpty) {
+      _validationErrors['title'] = 'Title is required';
+      isValid = false;
+    }
+
+    // Validate email fields
+    for (int i = 0; i < _emailControllers.length; i++) {
+      final email = _emailControllers[i].text.trim();
+      if (email.isEmpty) {
+        _validationErrors['email_$i'] = 'Email is required';
+        isValid = false;
+      } else if (!_isValidEmail(email)) {
+        _validationErrors['email_$i'] = 'Invalid email format';
+        isValid = false;
+      }
+    }
+
+    // Validate password fields
+    for (int i = 0; i < _passwordControllers.length; i++) {
+      final password = _passwordControllers[i].text.trim();
+      if (password.isEmpty) {
+        _validationErrors['password_$i'] = 'Password is required';
+        isValid = false;
+      }
+    }
+
+    // Validate text fields
+    for (int i = 0; i < _textControllers.length; i++) {
+      final text = _textControllers[i].text.trim();
+      if (text.isEmpty) {
+        _validationErrors['text_$i'] = 'Text is required';
+        isValid = false;
+      }
+    }
+
+    // Validate website fields
+    for (int i = 0; i < _websiteControllers.length; i++) {
+      final website = _websiteControllers[i].text.trim();
+      if (website.isEmpty) {
+        _validationErrors['website_$i'] = 'Website is required';
+        isValid = false;
+      } else if (!_isValidWebsite(website)) {
+        _validationErrors['website_$i'] = 'Invalid website format';
+        isValid = false;
+      }
+    }
+
+    return isValid;
+  }
+
   List<TextEditingController> _addControllers(String type){
     return List.generate(widget.password.where(
             (item) => item['Type'] == type
@@ -45,96 +118,157 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
   @override
   void initState() {
     super.initState();
-    _loadVaults();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final vaultProvider = Provider.of<VaultProvider>(context, listen: false);
+        vaultProvider.loadAllVaults();
+      }
+    });
     _emailControllers = _addControllers('email');
     _passwordControllers = _addControllers('password');
     _textControllers = _addControllers('text');
     _websiteControllers = _addControllers('website');
   }
 
-  Future<void> _loadVaults() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final vaults = await _databaseService.getAllVaults();
-      setState(() {
-        _vaults = vaults;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      print('Failed to load vaults: $e');
-    }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Store provider reference when context is available
+    _passwordProvider ??= context.read<PasswordProvider>();
+    _vaultProvider ??= context.read<VaultProvider>();
   }
 
-  void _save() {
+  void _save() async {
+    if (!mounted) {
+      print("not mounted!");
+      return; 
+    }
+    
     setState(() {
       _isLoading = true;
     });
+    
     try {
-      // Prepare data to save
-      Map<String,List<TextEditingController>> updatedFields = {
-        'email': _emailControllers,
-        'password': _passwordControllers,
-        'text': _textControllers,
-        'website': _websiteControllers,
-      };
-      
-      List<Note> passwordNotes = widget.password.where(
-          (item) => item['Type'] == 'password'
-      ).toList().map((item) => Note(
-          NoteId: item['NoteId'], Description: item['Description'], Type: 'password', CreatedAt: item['CreatedAt'], UpdatedAt: item['UpdatedAt'], PassId: item['PassId'])
-      ).toList();
-
-      List<Note> emailNotes = widget.password.where(
-          (item) => item['Type'] == 'email'
-      ).toList().map((item) => Note(
-          NoteId: item['NoteId'], Description: item['Description'], Type: 'email', CreatedAt: item['CreatedAt'], UpdatedAt: item['UpdatedAt'], PassId: item['PassId'])
-      ).toList();
-
-      List<Note> textNotes = widget.password.where(
-          (item) => item['Type'] == 'text'
-      ).toList().map((item) => Note(
-          NoteId: item['NoteId'], Description: item['Description'], Type: 'text', CreatedAt: item['CreatedAt'], UpdatedAt: item['UpdatedAt'], PassId: item['PassId'])
-      ).toList();
-
-      List<Note> websiteNotes = widget.password.where(
-          (item) => item['Type'] == 'website'
-      ).toList().map((item) => Note(
-          NoteId: item['NoteId'], Description: item['Description'], Type: 'website', CreatedAt: item['CreatedAt'], UpdatedAt: item['UpdatedAt'], PassId: item['PassId'])
-      ).toList();
-
-      // Call the database service to update the password entry
-      Future<void> saveChanges(List<Note> notes, String type) async {
-        try{
-          for(int i=0; i < updatedFields[type]!.length; i++){
-            if( i >= notes.length){
-              await _databaseService.createNote(description: updatedFields[type]![i].text, type: type , passId: widget.password[0]['PassId']);
-            } else if(notes[i].Description == updatedFields[type]![i].text){
-              print('no change');
-            } else {
-              await _databaseService.updateNote(notes[i].NoteId, updatedFields[type]![i].text, type);
-            }
-          }
-        } catch(e){
-          print("Error updating $type notes: $e");
-        }
+      // Validate all fields first
+      if (!_validateAllFields()) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showValidationDialog();
+        return;
       }
 
-      saveChanges(passwordNotes, 'password');
-      saveChanges(emailNotes, 'email');
-      saveChanges(textNotes, 'text');
-      saveChanges(websiteNotes, 'website');
+      // 1. Update PassTitle if it changed
+      final currentTitle = widget.password.isNotEmpty ? widget.password[0]['PassTitle'] as String? ?? '' : '';
+      final newTitle = _titleController.text.trim();
+      
+      if (currentTitle != newTitle && widget.password.isNotEmpty) {
+        final passId = widget.password[0]['PassId'];
+        await _databaseService.updatePass(passId, newTitle);
+        
+        // Update provider after successful database update
+        if (_passwordProvider != null) {
+          _passwordProvider!.clearPasswordCache(passId);
+          await _passwordProvider!.loadPasswordData(passId);
+          await _passwordProvider!.loadAllPasses();
+        }
+      }
+      
+      // 2. Update/Create notes for each type
+      await _saveNotesOfType('email', _emailControllers);
+      await _saveNotesOfType('password', _passwordControllers);
+      await _saveNotesOfType('text', _textControllers);
+      await _saveNotesOfType('website', _websiteControllers);
 
+      if (!mounted) return;
+      
       setState(() {
         _isLoading = false;
       });
-      Navigator.pop(context); // Go back after saving
+      
+      Navigator.pop(context);
     } catch (e) {
+      print("Error saving changes: $e");
+      if (!mounted) return;
+      
       setState(() {
         _isLoading = false;
       });
-      print("Error updating password entry: $e");
+      _showErrorDialog('Error saving changes: $e');
+    }
+  }
+
+  void _showValidationDialog() {
+    final errors = _validationErrors.values.take(3).join('\n');
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text('Validation Error'),
+        content: Text(errors),
+        actions: [
+          CupertinoDialogAction(
+            child: Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text('Error'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveNotesOfType(String type, List<TextEditingController> controllers) async {
+    // Get existing notes of this type
+    final existingNotes = widget.password.where(
+      (item) => item['Type'] == type
+    ).toList();
+
+    final passId = widget.password.isNotEmpty ? widget.password[0]['PassId'] : null;
+    if (passId == null) return;
+
+    // Process each controller
+    for (int i = 0; i < controllers.length; i++) {
+      final newDescription = controllers[i].text.trim();
+      
+      if (i < existingNotes.length) {
+        // Update existing note if description changed
+        final existingNote = existingNotes[i];
+        final currentDescription = existingNote['Description'] as String? ?? '';
+        
+        if (currentDescription != newDescription) {
+          final noteId = existingNote['NoteId'];
+          await _databaseService.updateNote(noteId, newDescription, type);
+        }
+      } else {
+        // Create new note if we have more controllers than existing notes
+        if (newDescription.isNotEmpty) {
+          await _databaseService.createNote(
+            description: newDescription, 
+            type: type, 
+            passId: passId
+          );
+        }
+      }
+    }
+    
+    // Refresh provider data after note updates
+    if (_passwordProvider != null) {
+      _passwordProvider!.clearPasswordCache(passId);
+      await _passwordProvider!.loadPasswordData(passId);
     }
   }
 
@@ -191,22 +325,58 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
         Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
         ...List.generate(controllers.length, (index) {
+          final fieldKey = '${title.toLowerCase()}_$index';
+          final hasError = _validationErrors.containsKey(fieldKey);
+          
           return Padding(
             padding: EdgeInsets.only(bottom: 8),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: CupertinoTextField(
-                    controller: controllers[index],
-                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    placeholder: "Your ${title.toLowerCase()}...",
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoTextField(
+                        controller: controllers[index],
+                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        placeholder: title == 'Email' 
+                          ? "example@domain.com"
+                          : title == 'Website'
+                            ? "example.com"
+                            : "Your ${title.toLowerCase()}...",
+                        decoration: BoxDecoration(
+                          border: hasError 
+                            ? Border.all(color: CupertinoColors.systemRed, width: 1)
+                            : null,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        onChanged: (_) {
+                          if (hasError) {
+                            setState(() {
+                              _validationErrors.remove(fieldKey);
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    if (canRemove && controllers.length > 1)
+                      CupertinoButton(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        onPressed: () => _removeField(title, index),
+                        child: Icon(LucideIcons.x, size: 18),
+                      ),
+                  ],
                 ),
-                if (canRemove && controllers.length > 1)
-                  CupertinoButton(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    onPressed: () => _removeField(title, index),
-                    child: Icon(LucideIcons.x, size: 18),
+                if (hasError)
+                  Padding(
+                    padding: EdgeInsets.only(top: 4, left: 14),
+                    child: Text(
+                      _validationErrors[fieldKey]!,
+                      style: TextStyle(
+                        color: CupertinoColors.systemRed,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -220,11 +390,12 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
+        transitionBetweenRoutes: false,
         trailing: CupertinoButton(onPressed: () {
               _save();
         },
         padding: EdgeInsets.zero,
-          child: Text('Save'),),
+          child: _isLoading ? CupertinoActivityIndicator() : Text('Save'),),
       ),
       child: Padding(
         padding: EdgeInsets.all(12.0),
@@ -234,51 +405,64 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
           child: Column(
             spacing: 24,
             children: [
-              CupertinoButton(
-                sizeStyle: CupertinoButtonSize.small,
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: CupertinoColors.systemGrey4),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_vaults[_selectedIndex].VaultTitle),
-                      Icon(LucideIcons.chevronDown)
-                    ],
-                  ),
-                ),
-                onPressed: () {
-                  showCupertinoModalPopup(
-                    context: context,
-                    builder: (context) {
-                      return SizedBox(
-                        height: 200.0,
-                        child: CupertinoPicker(
-                            scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
-                            backgroundColor: DepassConstants.background,
-                            itemExtent: 42.0,
-                            onSelectedItemChanged: (int index) {
-                              setState(() {
-                                _selectedIndex = index;
-                              });
-                            },
-                            children: _vaults.map((vault) => Center(
-                              child: Text(
-                                vault.VaultTitle,
-                                style: TextStyle(
-                                    color: DepassConstants.text,
-                                    fontWeight: FontWeight.w600
-                                ),
-                              ),
-                            )).toList()
-                        ),
+              Consumer<VaultProvider>(
+                builder: (context, vaultProvider, child) {
+                  final vaults = vaultProvider.allVaults ?? [];
+                  
+                  // Ensure selected index is within bounds
+                  if (_selectedIndex >= vaults.length) {
+                    _selectedIndex = vaults.isNotEmpty ? 0 : 0;
+                  }
+                  
+                  return CupertinoButton(
+                    sizeStyle: CupertinoButtonSize.small,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(color: CupertinoColors.systemGrey4),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(vaults.isNotEmpty ? vaults[_selectedIndex].VaultTitle : "No Vaults"),
+                          Icon(LucideIcons.chevronDown)
+                        ],
+                      ),
+                    ),
+                    onPressed: () {
+                      if (vaults.isEmpty) return;
+                      
+                      showCupertinoModalPopup(
+                        context: context,
+                        builder: (context) {
+                          return SizedBox(
+                            height: 200.0,
+                            child: CupertinoPicker(
+                                scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
+                                backgroundColor: DepassConstants.background,
+                                itemExtent: 42.0,
+                                onSelectedItemChanged: (int index) {
+                                  setState(() {
+                                    _selectedIndex = index;
+                                  });
+                                },
+                                children: vaults.map((vault) => Center(
+                                  child: Text(
+                                    vault.VaultTitle,
+                                    style: TextStyle(
+                                        color: DepassConstants.text,
+                                        fontWeight: FontWeight.w600
+                                    ),
+                                  ),
+                                )).toList()
+                            ),
+                          );
+                        },
                       );
                     },
                   );
-                },
+                }
               ),
 
               // Title field
@@ -291,7 +475,31 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                     controller: _titleController,
                     padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     placeholder: "Your title...",
+                    decoration: BoxDecoration(
+                      border: _validationErrors.containsKey('title') 
+                        ? Border.all(color: CupertinoColors.systemRed, width: 1)
+                        : null,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    onChanged: (_) {
+                      if (_validationErrors.containsKey('title')) {
+                        setState(() {
+                          _validationErrors.remove('title');
+                        });
+                      }
+                    },
                   ),
+                  if (_validationErrors.containsKey('title'))
+                    Padding(
+                      padding: EdgeInsets.only(top: 4, left: 14),
+                      child: Text(
+                        _validationErrors['title']!,
+                        style: TextStyle(
+                          color: CupertinoColors.systemRed,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
                 ],
               ),
 
@@ -366,6 +574,9 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                         }
                     );
                   }
+              ),
+              CupertinoActivityIndicator(
+                color: _isLoading ? Color(0xFF000000) : Color(0xFFFFFFFF),
               ),
               SizedBox(
                 height: 32,

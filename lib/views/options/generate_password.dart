@@ -1,6 +1,7 @@
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:random_string/random_string.dart';
 
@@ -13,12 +14,12 @@ class GeneratePasswordScreen extends StatefulWidget {
 
 class _GeneratePasswordScreenState extends State<GeneratePasswordScreen> {
 
-  int maxChars = 16;
+  double maxChars = 16;
   String password = randomString(16);
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(),
+      navigationBar: CupertinoNavigationBar(transitionBetweenRoutes: false),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
@@ -34,10 +35,14 @@ class _GeneratePasswordScreenState extends State<GeneratePasswordScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(),
+                  Text(password),
                   CupertinoButton(
                     child: Icon(LucideIcons.copy),
-                    onPressed: () {},
+                    onPressed: () {
+                      Clipboard.setData(
+                        ClipboardData(text: password),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -47,27 +52,27 @@ class _GeneratePasswordScreenState extends State<GeneratePasswordScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: CupertinoSlider(
-                    divisions: 4,
-                    value: 16,
+                    divisions: 3,
+                    value: maxChars,
                     min: 8,
                     max: 32,
                     onChanged: (value) {
                       setState(() {
                         maxChars = value;
-                        password = randomString(value);
+                        password = randomString(value.toInt());
                       });
                     },
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('8', style: DepassTextTheme.caption),
                       Text('16', style: DepassTextTheme.caption),
                       Text('24', style: DepassTextTheme.caption),
-                      Text('48', style: DepassTextTheme.caption),
+                      Text('32', style: DepassTextTheme.caption),
                     ],
                   ),
                 ),
@@ -85,7 +90,7 @@ class _GeneratePasswordScreenState extends State<GeneratePasswordScreen> {
               ),
               onPressed: () {
                 setState(() {
-                  password = randomString(maxChars);
+                  password = randomString(maxChars.toInt());
                 });
               },
             ),

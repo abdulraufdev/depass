@@ -1,12 +1,12 @@
+import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:depass/widgets/custom_drawer.dart';
 import 'package:depass/widgets/custom_list.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:depass/services/database_service.dart';
-import 'package:depass/models/pass.dart';
 import 'package:depass/models/vault.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,17 +16,34 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  DBService db = DBService.instance;
-  bool _isLoading = true;
-
   int _selectedIndex = 0;
 
-  Future<List<Vault>> getVaults() async {
-    List<Vault> vaults = [Vault(VaultId: 0, VaultTitle: "All Vaults", CreatedAt: DateTime.now().millisecondsSinceEpoch, UpdatedAt: DateTime.now().millisecondsSinceEpoch)];
-    List<Vault> myVaults = await db.getAllVaults();
-    vaults.addAll(myVaults);
-    return vaults;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final vaultProvider = Provider.of<VaultProvider>(context, listen: false);
+        vaultProvider.loadAllVaults();
+      }
+    });
+  }
 
+  List<Vault> _buildVaultsList(List<Vault>? providerVaults) {
+    List<Vault> vaults = [
+      Vault(
+        VaultId: 0,
+        VaultTitle: "All Vaults",
+        CreatedAt: DateTime.now().millisecondsSinceEpoch,
+        UpdatedAt: DateTime.now().millisecondsSinceEpoch
+      )
+    ];
+    
+    if (providerVaults != null) {
+      vaults.addAll(providerVaults);
+    }
+    
+    return vaults;
   }
 
 
@@ -57,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
+        transitionBetweenRoutes: false,
         padding: EdgeInsetsDirectional.symmetric(horizontal: 12.0),
         leading: Text('Home', style: TextStyle(fontWeight: FontWeight.bold),),
         trailing: CupertinoButton(onPressed: (){
@@ -71,9 +89,15 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             spacing: 32,
             children: [
-              FutureBuilder(
-                future: getVaults(),
-                builder: (context, asyncSnapshot) {
+              Consumer<VaultProvider>(
+                builder: (context, vaultProvider, child) {
+                  final allVaults = _buildVaultsList(vaultProvider.allVaults);
+                  
+                  // Ensure selected index is within bounds
+                  if (_selectedIndex >= allVaults.length) {
+                    _selectedIndex = 0;
+                  }
+                  
                   return CupertinoButton.filled(
                     minimumSize: const Size(double.infinity, 64),
                     foregroundColor: DepassConstants.text,
@@ -95,13 +119,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     });
                                     print("selected $index");
                                   },
-                                  children: asyncSnapshot.data?.map((vault)=> Center(
+                                  children: allVaults.map((vault) => Center(
                                     child: Text(vault.VaultTitle, 
                                     style: TextStyle(
                                       color: DepassConstants.text,
                                       fontWeight: FontWeight.w600
                                     ),),
-                                  )).toList() ?? [Center(child: Text("No Vaults"))],
+                                  )).toList(),
                                 ),
                               );
                             }
@@ -111,7 +135,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(asyncSnapshot.data?[_selectedIndex].VaultTitle ?? "No Vaults", style: TextStyle(fontWeight: FontWeight.bold),),
+                        Text(allVaults.isNotEmpty ? allVaults[_selectedIndex].VaultTitle : "No Vaults", 
+                             style: TextStyle(fontWeight: FontWeight.bold)),
                         Icon(LucideIcons.chevronsUpDown)
                       ],
                     ),
@@ -123,7 +148,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Recently added", style: DepassTextTheme.heading2,),
-                  CustomList(),
+                  Consumer<VaultProvider>(
+                builder: (context, vaultProvider, child) {
+                  final allVaults = _buildVaultsList(vaultProvider.allVaults);
+                  return CustomList(vaultId: allVaults[_selectedIndex].VaultId);
+                },
+                  ),
                 ],
               )
             ],

@@ -1,46 +1,28 @@
-import 'package:depass/models/pass.dart';
-import 'package:depass/services/database_service.dart';
+import 'package:depass/providers/password_provider.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:depass/views/password/password_screen.dart';
 import 'package:depass/widgets/custom_list_tile.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 
 class CustomList extends StatefulWidget {
-  const CustomList({super.key});
-
+  const CustomList({super.key, this.vaultId=0});
+  final int vaultId;
   @override
   State<CustomList> createState() => _CustomListState();
 }
 
 class _CustomListState extends State<CustomList> {
-  DBService db = DBService.instance;
-  List<Pass> _passes = [];
-  bool _isLoading = false;
-
   @override
   void initState() {
     super.initState();
-    _loadPasses();
-  }
-
-  Future<void> _loadPasses() async {
-    setState(() {
-      _isLoading = true;
+    // Load passes when widget initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<PasswordProvider>();
+      if (provider.allPasses == null) {
+        provider.loadFilteredPasses(widget.vaultId);
+      }
     });
-    try{
-      final passes = await db.getAllPasses();
-      setState(() {
-        _passes = passes;
-        print(_passes[0].toMap());
-        _isLoading = false;
-      });
-    } catch(e){
-      print('Failed to load passes: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   @override
@@ -51,27 +33,46 @@ class _CustomListState extends State<CustomList> {
         borderRadius: BorderRadius.circular(8),
       ),
       clipBehavior: Clip.antiAlias,
-      child: (_isLoading ?
-          Center(
-            child: CupertinoActivityIndicator(),
-          ) :
-          _passes.isEmpty ? Center(
-            child: Text('No items found'),
-          ) : Column(
+      child: Consumer<PasswordProvider>(
+        builder: (context, passwordProvider, child) {
+          final isLoading = passwordProvider.isLoadingAllPasses;
+          final passes = passwordProvider.allPasses;
+
+          if (isLoading) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(32.0),
+                child: CupertinoActivityIndicator(),
+              ),
+            );
+          }
+
+          if (passes == null || passes.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(32.0),
+                child: Text('No items found'),
+              ),
+            );
+          }
+
+          return Column(
             spacing: 2,
-            children: List.generate(_passes.length, (index){
+            children: List.generate(passes.length, (index) {
+              final pass = passes[index];
               return CustomListTile(
-                title: _passes[index].PassTitle,
-                onTap: (){
+                title: pass.PassTitle,
+                onTap: () {
                   Navigator.of(context).push(
                     CupertinoPageRoute(
-                      builder: (context) => PasswordScreen(id: _passes[index].PassId.toString()),
-                    )
+                      builder: (context) => PasswordScreen(id: pass.PassId.toString()),
+                    ),
                   );
                 },
               );
-            })
-          )
+            }),
+          );
+        },
       ),
     );
   }

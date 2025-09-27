@@ -1,10 +1,19 @@
+import 'package:depass/providers/theme_provider.dart';
+import 'package:depass/providers/password_provider.dart';
+import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/theme/theme.dart';
 import 'package:depass/views/auth/auth_screen.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(ChangeNotifierProvider(
-      create: (context) => ThemeProvider(),
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => PasswordProvider()),
+        ChangeNotifierProvider(create: (context) => VaultProvider()),
+      ],
       child: const MainApp(),
     )
   );
@@ -21,7 +30,7 @@ class MainApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: themeProvider.isDarkMode 
               ? DepassTheme.darkTheme 
-              : DepassTheme.lightTheme,
+              : DepassTheme.themeData,
           title: 'Depass',
           home: AuthScreen(),
         );

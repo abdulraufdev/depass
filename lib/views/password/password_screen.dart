@@ -1,3 +1,4 @@
+import 'package:depass/providers/password_provider.dart';
 import 'package:depass/services/database_service.dart';
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
@@ -5,6 +6,7 @@ import 'package:depass/views/password/edit_password.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 
 class PasswordScreen extends StatefulWidget {
   const PasswordScreen({super.key, required this.id});
@@ -16,25 +18,134 @@ class PasswordScreen extends StatefulWidget {
 }
 
 class _PasswordScreenState extends State<PasswordScreen> {
-  DBService db = DBService.instance;
+  final DBService _databaseService = DBService.instance;
+  bool _isDeleting = false;
+  @override
+  void initState() {
+    super.initState();
+    // Load password data when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<PasswordProvider>();
+      final passId = int.parse(widget.id);
+      
+      // Load data if not already cached
+      if (provider.getPasswordData(passId) == null) {
+        provider.loadPasswordData(passId);
+      }
+    });
+  }
 
   Widget _customTitle(Map<String, dynamic> note) {
-    return note['Type'] == "password"
+    final type = note['Type'] as String?;
+    final description = note['Description'] as String? ?? '';
+    
+    return type == "password"
         ? Text("***********")
-        : Text(note['Description']);
+        : Text(description.isEmpty ? 'No content' : description);
+  }
+
+  Future<void> _deletePassword() async {
+    final passId = int.parse(widget.id);
+    
+    setState(() {
+      _isDeleting = true;
+    });
+
+    try {
+      // Delete from database
+      await _databaseService.deletePass(passId);
+      
+      // Update provider
+      final passwordProvider = context.read<PasswordProvider>();
+      passwordProvider.clearPasswordCache(passId);
+      await passwordProvider.loadAllPasses();
+      
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() {
+        _isDeleting = false;
+      });
+      _showErrorDialog('Error deleting password: $e');
+    }
+  }
+
+  void _showDeleteConfirmation() {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text('Delete Password'),
+        content: Text('Are you sure you want to delete this password? This action cannot be undone.'),
+        actions: [
+          CupertinoDialogAction(
+            child: Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: Text('Delete'),
+            onPressed: () {
+              Navigator.pop(context);
+              _deletePassword();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text('Error'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final passId = int.parse(widget.id);
+    
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
+        transitionBetweenRoutes: false,
         middle: Text('Password'),
+        trailing: _isDeleting 
+          ? CupertinoActivityIndicator()
+          : CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: Icon(LucideIcons.trash2),
+              onPressed: _showDeleteConfirmation,
+            ),
       ),
       child: Padding(
         padding: EdgeInsets.all(12.0),
-        child: FutureBuilder(
-          future: db.getNotesByPassId(int.parse(widget.id)),
-          builder: (context, asyncSnapshot) {
+        child: Consumer<PasswordProvider>(
+          builder: (context, passwordProvider, child) {
+            final isLoading = passwordProvider.isLoadingPassword(passId);
+            final data = passwordProvider.getPasswordData(passId);
+            
+            if (isLoading) {
+              return Center(child: CupertinoActivityIndicator());
+            }
+            
+            if (data == null || data.isEmpty) {
+              return Center(
+                child: Text('No data found'),
+              );
+            }
+            
+            final passTitle = data.isNotEmpty ? data[0]['PassTitle'] as String? ?? 'Untitled' : 'Untitled';
+            
             return Column(
               spacing: 32,
               children: [
@@ -42,16 +153,19 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      asyncSnapshot.data![0]['PassTitle'],
-                      style: DepassTextTheme.heading1,
+                    Expanded(
+                      child: Text(
+                        passTitle,
+                        style: DepassTextTheme.heading1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     CupertinoButton(
                       child: Icon(LucideIcons.pen),
                       onPressed: () {
                         Navigator.of(context).push(
                           CupertinoPageRoute(
-                            builder: (context) => EditPasswordScreen(password: asyncSnapshot.data!),
+                            builder: (context) => EditPasswordScreen(password: data),
                           ),
                         );
                       },
@@ -61,7 +175,11 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 Column(
                     spacing: 24,
                     children: List.generate(4, (index) {
-                      return asyncSnapshot.data!.where((note) => note['Type'] == DepassConstants.noteTypes[index]).toList().isNotEmpty ? Column(
+                      final notesOfType = data.where((note) => 
+                        note['Type'] == DepassConstants.noteTypes[index]
+                      ).toList();
+                      
+                      return notesOfType.isNotEmpty ? Column(
                         spacing: 12,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -74,30 +192,25 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             clipBehavior: Clip.antiAlias,
                             child: Column(
                               children: List.generate(
-                                asyncSnapshot.data!
-                                    .where(
-                                      (note) =>
-                                          note['Type'] ==
-                                          DepassConstants.noteTypes[index],
-                                    )
-                                    .toList()
-                                    .length,
+                                notesOfType.length,
                                 (index2) {
+                                  final note = notesOfType[index2];
                                   return CupertinoListTile(
                                     padding: EdgeInsets.symmetric(
                                       horizontal: 14,
                                       vertical: 10,
                                     ),
                                     backgroundColor: DepassConstants.fadedBackground,
-                                    title: _customTitle(asyncSnapshot.data!.where((note) => note['Type'] == DepassConstants.noteTypes[index]).toList()[index2]),
+                                    title: _customTitle(note),
                                     trailing: CupertinoButton(
                                       child: Icon(LucideIcons.copy),
                                       onPressed: () {
-                                        Clipboard.setData(
-                                          ClipboardData(
-                                            text: asyncSnapshot.data!.where((note) => note['Type'] == DepassConstants.noteTypes[index]).toList()[index2]['Description'],
-                                          ),
-                                        );
+                                        final description = note['Description'] as String? ?? '';
+                                        if (description.isNotEmpty) {
+                                          Clipboard.setData(
+                                            ClipboardData(text: description),
+                                          );
+                                        }
                                       },
                                     ),
                                   );

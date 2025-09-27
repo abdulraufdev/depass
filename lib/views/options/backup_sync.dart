@@ -6,7 +6,8 @@ class BackupSyncScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
+      navigationBar: CupertinoNavigationBar(
+        transitionBetweenRoutes: false,
         middle: Text('Backup & Sync'),
       ),
       child: Center(

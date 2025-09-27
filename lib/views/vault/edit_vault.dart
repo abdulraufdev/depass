@@ -1,7 +1,9 @@
 import 'package:depass/models/vault.dart';
+import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/services/database_service.dart';
 import 'package:depass/theme/text_theme.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 
 class EditVaultScreen extends StatefulWidget {
   const EditVaultScreen({super.key, required this.id});
@@ -40,18 +42,24 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
     }
   }
 
-  Future<void> _saveChanges()async {
+  Future<void> _saveChanges() async {
+    if (_controller.text.trim().isEmpty) return;
+    
     setState(() {
-      _isLoading =true;
+      _isLoading = true;
     });
-    try{
-      await _databaseService.updateVault(int.parse(widget.id), _controller.text);
+    
+    try {
+      // Use VaultProvider to update the title (this will refresh all vault UI automatically)
+      final vaultProvider = Provider.of<VaultProvider>(context, listen: false);
+      await vaultProvider.updateVaultTitle(int.parse(widget.id), _controller.text.trim());
+      
       setState(() {
         _isLoading = false;
       });
-    } catch(e){
+    } catch (e) {
       setState(() {
-        _isLoading= false;
+        _isLoading = false;
       });
       print("Error updating vault: $e");
     }
@@ -60,7 +68,7 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(),
+      navigationBar: CupertinoNavigationBar(transitionBetweenRoutes: false),
       child: Padding(
         padding:  const EdgeInsets.all(12.0),
           child: Column(

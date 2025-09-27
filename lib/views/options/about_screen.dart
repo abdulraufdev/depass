@@ -6,7 +6,8 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
+      navigationBar: CupertinoNavigationBar(
+        transitionBetweenRoutes: false,
         middle: Text('About'),
       ),
       child: Center(
