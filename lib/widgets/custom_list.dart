@@ -6,25 +6,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
 class CustomList extends StatefulWidget {
-  const CustomList({super.key, this.vaultId=0});
-  final int vaultId;
+  const CustomList({super.key});
+
   @override
   State<CustomList> createState() => _CustomListState();
 }
 
 class _CustomListState extends State<CustomList> {
-  @override
-  void initState() {
-    super.initState();
-    // Load passes when widget initializes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<PasswordProvider>();
-      if (provider.allPasses == null) {
-        provider.loadFilteredPasses(widget.vaultId);
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(

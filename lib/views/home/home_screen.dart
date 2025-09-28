@@ -1,3 +1,4 @@
+import 'package:depass/providers/password_provider.dart';
 import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
@@ -21,10 +22,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         final vaultProvider = Provider.of<VaultProvider>(context, listen: false);
-        vaultProvider.loadAllVaults();
+        final passwordProvider = Provider.of<PasswordProvider>(context, listen: false);
+        
+        // Load vaults first, then initialize passwords
+        await vaultProvider.loadAllVaults();
+        
+        // Initialize password provider with "All Vaults" (vaultId = 0)
+        await passwordProvider.setCurrentVault(0);
       }
     });
   }
@@ -117,6 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     setState(() {
                                       _selectedIndex = index;
                                     });
+                                    
+                                    // Update the password provider with the new vault selection
+                                    final passwordProvider = Provider.of<PasswordProvider>(context, listen: false);
+                                    passwordProvider.setCurrentVault(allVaults[index].VaultId);
+                                    
                                     print("selected $index");
                                   },
                                   children: allVaults.map((vault) => Center(
@@ -148,12 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Recently added", style: DepassTextTheme.heading2,),
-                  Consumer<VaultProvider>(
-                builder: (context, vaultProvider, child) {
-                  final allVaults = _buildVaultsList(vaultProvider.allVaults);
-                  return CustomList(vaultId: allVaults[_selectedIndex].VaultId);
-                },
-                  ),
+                  CustomList(),
                 ],
               )
             ],

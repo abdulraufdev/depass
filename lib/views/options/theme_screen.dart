@@ -26,7 +26,10 @@ class _ThemeScreenState extends State<ThemeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Theme', style: DepassTextTheme.heading1),
-            CupertinoSegmentedControl<DepassThemeMode>(
+            SizedBox(
+              width: double.infinity,
+              child: CupertinoSegmentedControl<DepassThemeMode>(
+                borderColor: DepassConstants.separator,
               children: const <DepassThemeMode, Widget>{
                 DepassThemeMode.light: Text('Light'),
                 DepassThemeMode.dark: Text('Dark'),
@@ -40,6 +43,7 @@ class _ThemeScreenState extends State<ThemeScreen> {
                 });
               },
             ),
+            )
           ],
         ),
       ),

@@ -15,6 +15,9 @@ class PasswordProvider extends ChangeNotifier {
   // Loading states
   final Map<int, bool> _loadingStates = {};
   bool _isLoadingAllPasses = false;
+  
+  // Current selected vault ID
+  int _currentVaultId = 0;
 
   // Safe notification method
   void _safeNotifyListeners() {
@@ -30,6 +33,7 @@ class PasswordProvider extends ChangeNotifier {
   // Getters
   List<Pass>? get allPasses => _allPasses;
   bool get isLoadingAllPasses => _isLoadingAllPasses;
+  int get currentVaultId => _currentVaultId;
   
   List<Map<String, dynamic>>? getPasswordData(int passId) {
     return _passwordCache[passId];
@@ -56,14 +60,28 @@ class PasswordProvider extends ChangeNotifier {
     }
   }
 
+  // Set current vault and load filtered passes
+  Future<void> setCurrentVault(int vaultId) async {
+    print('setCurrentVault called with vaultId: $vaultId, current: $_currentVaultId, allPasses: ${_allPasses?.length}');
+    if (_currentVaultId != vaultId || _allPasses == null) {
+      _currentVaultId = vaultId;
+      await loadFilteredPasses(vaultId);
+    } else {
+      print('Skipping load - vault already set and passes loaded');
+    }
+  }
+
   // Load filtered passes by vault ID
   Future<void> loadFilteredPasses(int vaultId) async {
+    _currentVaultId = vaultId; // Update current vault ID
     _isLoadingAllPasses = true;
     _safeNotifyListeners();
     
     try {
+      print('Loading filtered passes for vaultId: $vaultId');
       final passes = await _dbService.getAllPasses();
       _allPasses = passes.where((pass) => vaultId == 0 || pass.VaultId == vaultId).toList();
+      print('Loaded ${_allPasses?.length ?? 0} passes for vaultId: $vaultId');
     } catch (e) {
       print('Error loading all passes: $e');
       _allPasses = [];

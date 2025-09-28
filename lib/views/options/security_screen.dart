@@ -1,3 +1,4 @@
+import 'package:depass/services/auth_service.dart';
 import 'package:flutter/cupertino.dart';
 
 class SecurityScreen extends StatefulWidget {
@@ -8,6 +9,7 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
+  AuthService _authService = AuthService();
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -15,9 +17,15 @@ class _SecurityScreenState extends State<SecurityScreen> {
         transitionBetweenRoutes: false,
         middle: Text('Security'),
       ),
-      child: Center(
-        child: Text('Security Screen'),
-      ),
+      child:Column(
+        children: [
+          CupertinoListTile(title: Text('Delete'),
+          onTap: (){
+            _authService.clearAllData();
+          },
+          )
+        ],
+      )
     );
   }
 }
