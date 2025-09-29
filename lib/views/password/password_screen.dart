@@ -4,6 +4,7 @@ import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:depass/views/password/edit_password.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +21,7 @@ class PasswordScreen extends StatefulWidget {
 class _PasswordScreenState extends State<PasswordScreen> {
   final DBService _databaseService = DBService.instance;
   bool _isDeleting = false;
+  bool _isExporting = false;
   @override
   void initState() {
     super.initState();
@@ -27,7 +29,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<PasswordProvider>();
       final passId = int.parse(widget.id);
-      
+
       // Load data if not already cached
       if (provider.getPasswordData(passId) == null) {
         provider.loadPasswordData(passId);
@@ -38,7 +40,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
   Widget _customTitle(Map<String, dynamic> note) {
     final type = note['Type'] as String?;
     final description = note['Description'] as String? ?? '';
-    
+
     return type == "password"
         ? Text("***********")
         : Text(description.isEmpty ? 'No content' : description);
@@ -46,7 +48,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
 
   Future<void> _deletePassword() async {
     final passId = int.parse(widget.id);
-    
+
     setState(() {
       _isDeleting = true;
     });
@@ -54,12 +56,12 @@ class _PasswordScreenState extends State<PasswordScreen> {
     try {
       // Delete from database
       await _databaseService.deletePass(passId);
-      
+
       // Update provider
       final passwordProvider = context.read<PasswordProvider>();
       passwordProvider.clearPasswordCache(passId);
       await passwordProvider.loadAllPasses();
-      
+
       if (mounted) {
         Navigator.pop(context);
       }
@@ -76,7 +78,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
       context: context,
       builder: (context) => CupertinoAlertDialog(
         title: Text('Delete Password'),
-        content: Text('Are you sure you want to delete this password? This action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete this password? This action cannot be undone.',
+        ),
         actions: [
           CupertinoDialogAction(
             child: Text('Cancel'),
@@ -93,6 +97,10 @@ class _PasswordScreenState extends State<PasswordScreen> {
         ],
       ),
     );
+  }
+
+  void _exportToJSON(){
+  
   }
 
   void _showErrorDialog(String message) {
@@ -114,117 +122,185 @@ class _PasswordScreenState extends State<PasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final passId = int.parse(widget.id);
-    
+
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
         middle: Text('Password'),
-        trailing: _isDeleting 
-          ? CupertinoActivityIndicator()
-          : CupertinoButton(
-              padding: EdgeInsets.zero,
-              child: Icon(LucideIcons.trash2),
-              onPressed: _showDeleteConfirmation,
-            ),
+        trailing: _isDeleting
+            ? CupertinoActivityIndicator()
+            : CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  showCupertinoSheet(
+                    context: context,
+                    builder: (context) {
+                      return CupertinoPageScaffold(
+                        navigationBar: CupertinoNavigationBar(
+                          middle: Text('Options'),
+                        ),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              height: 1,
+                              child: Container(
+                                color: DepassConstants.barBackground,
+                              ),
+                            ),
+                            CupertinoButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _exportToJSON();
+                              },
+                              child: Row(
+                                spacing: 8,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(LucideIcons.braces),
+                                  Text('Export to JSON'),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              height: 2,
+                              child: Container(
+                                color: DepassConstants.barBackground,
+                              ),
+                            ),
+                            CupertinoButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _showDeleteConfirmation();
+                              },
+                              child: Row(
+                                spacing: 8,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(LucideIcons.trash2, color: Colors.red),
+                                  Text(
+                                    'Delete Password',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+                child: Icon(LucideIcons.ellipsis),
+              ),
       ),
       child: Padding(
         padding: EdgeInsets.all(12.0),
-        child: Consumer<PasswordProvider>(
-          builder: (context, passwordProvider, child) {
-            final isLoading = passwordProvider.isLoadingPassword(passId);
-            final data = passwordProvider.getPasswordData(passId);
-            
-            if (isLoading) {
-              return Center(child: CupertinoActivityIndicator());
-            }
-            
-            if (data == null || data.isEmpty) {
-              return Center(
-                child: Text('No data found'),
-              );
-            }
-            
-            final passTitle = data.isNotEmpty ? data[0]['PassTitle'] as String? ?? 'Untitled' : 'Untitled';
-            
-            return Column(
-              spacing: 32,
-              children: [
-                SizedBox(height: 40),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        passTitle,
-                        style: DepassTextTheme.heading1,
-                        overflow: TextOverflow.ellipsis,
+        child: SingleChildScrollView(
+          child: Consumer<PasswordProvider>(
+            builder: (context, passwordProvider, child) {
+              final isLoading = passwordProvider.isLoadingPassword(passId);
+              final data = passwordProvider.getPasswordData(passId);
+          
+              if (isLoading) {
+                return Center(child: CupertinoActivityIndicator());
+              }
+          
+              if (data == null || data.isEmpty) {
+                return Center(child: Text('No data found'));
+              }
+          
+              final passTitle = data.isNotEmpty
+                  ? data[0]['PassTitle'] as String? ?? 'Untitled'
+                  : 'Untitled';
+          
+              return Column(
+                spacing: 32,
+                children: [
+                  SizedBox(height: 40),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          passTitle,
+                          style: DepassTextTheme.heading1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    CupertinoButton(
-                      child: Icon(LucideIcons.pen),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          CupertinoPageRoute(
-                            builder: (context) => EditPasswordScreen(password: data),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                Column(
+                      CupertinoButton(
+                        child: Icon(LucideIcons.pen),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            CupertinoPageRoute(
+                              builder: (context) =>
+                                  EditPasswordScreen(password: data),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  Column(
                     spacing: 24,
                     children: List.generate(4, (index) {
-                      final notesOfType = data.where((note) => 
-                        note['Type'] == DepassConstants.noteTypes[index]
-                      ).toList();
-                      
-                      return notesOfType.isNotEmpty ? Column(
-                        spacing: 12,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(DepassConstants.noteTypes[index]),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: DepassConstants.separator,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Column(
-                              children: List.generate(
-                                notesOfType.length,
-                                (index2) {
-                                  final note = notesOfType[index2];
-                                  return CupertinoListTile(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 10,
-                                    ),
-                                    backgroundColor: DepassConstants.fadedBackground,
-                                    title: _customTitle(note),
-                                    trailing: CupertinoButton(
-                                      child: Icon(LucideIcons.copy),
-                                      onPressed: () {
-                                        final description = note['Description'] as String? ?? '';
-                                        if (description.isNotEmpty) {
-                                          Clipboard.setData(
-                                            ClipboardData(text: description),
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
-                      ) : SizedBox.shrink();
+                      final notesOfType = data
+                          .where(
+                            (note) =>
+                                note['Type'] == DepassConstants.noteTypes[index],
+                          )
+                          .toList();
+          
+                      return notesOfType.isNotEmpty
+                          ? Column(
+                              spacing: 12,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(DepassConstants.noteTypes[index]),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: DepassConstants.separator,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: Column(
+                                    children: List.generate(notesOfType.length, (
+                                      index2,
+                                    ) {
+                                      final note = notesOfType[index2];
+                                      return CupertinoListTile(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 10,
+                                        ),
+                                        backgroundColor:
+                                            DepassConstants.fadedBackground,
+                                        title: _customTitle(note),
+                                        trailing: CupertinoButton(
+                                          child: Icon(LucideIcons.copy),
+                                          onPressed: () {
+                                            final description =
+                                                note['Description'] as String? ??
+                                                '';
+                                            if (description.isNotEmpty) {
+                                              Clipboard.setData(
+                                                ClipboardData(text: description),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : SizedBox.shrink();
                     }),
                   ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

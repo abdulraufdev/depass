@@ -61,7 +61,7 @@ class CustomPopup extends StatelessWidget {
                     }),
                     CupertinoListTile(title: Text('Security'),
                         padding: EdgeInsets.zero,
-                    leading: Icon(LucideIcons.rectangleEllipsis), onTap: (){
+                    leading: Icon(LucideIcons.lock), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const SecurityScreen())
                       );
@@ -75,14 +75,14 @@ class CustomPopup extends StatelessWidget {
                     }),
                     CupertinoListTile(title: Text('Backup & Sync'),
                         padding: EdgeInsets.zero,
-                    leading: Icon(LucideIcons.rectangleEllipsis), onTap: (){
+                    leading: Icon(LucideIcons.refreshCcw), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const BackupSyncScreen())
                       );
                     }),
                     CupertinoListTile(title: Text('Restore'),
                         padding: EdgeInsets.zero,
-                    leading: Icon(LucideIcons.rectangleEllipsis), onTap: (){
+                    leading: Icon(LucideIcons.hardDriveDownload), onTap: (){
                       Navigator.of(context).push(
                         CupertinoPageRoute(builder: (context) => const RestoreScreen())
                       );

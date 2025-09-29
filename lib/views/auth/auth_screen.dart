@@ -58,7 +58,7 @@ class _AuthScreenState extends State<AuthScreen> {
         _isLoading = false;
       });
 
-      // Try biometric authentication if enabled and available
+      // Try device authentication if enabled and available
       if (!_isSettingUp && _biometricEnabled && _biometricAvailable) {
         _authenticateWithBiometrics();
       }
@@ -154,12 +154,12 @@ class _AuthScreenState extends State<AuthScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Enable Biometric Authentication'),
+        title: const Text('Enable Device Authentication'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Would you like to enable biometric authentication for faster access?',
+              'Would you like to enable device authentication (biometrics, PIN, pattern, or password) for faster access?',
             ),
             const SizedBox(height: 16),
             if (_availableBiometrics.isNotEmpty)
@@ -171,6 +171,11 @@ class _AuthScreenState extends State<AuthScreen> {
                     avatar: Icon(_getBiometricTypeIcon(type)),
                   );
                 }).toList(),
+              ),
+            if (_availableBiometrics.isEmpty)
+              const Chip(
+                label: Text('Device Authentication'),
+                avatar: Icon(Icons.lock),
               ),
           ],
         ),
@@ -248,6 +253,38 @@ class _AuthScreenState extends State<AuthScreen> {
       case BiometricType.weak:
       case BiometricType.strong:
         return Icons.security;
+    }
+  }
+
+  // Get the appropriate icon for authentication method
+  IconData _getAuthenticationIcon() {
+    if (_availableBiometrics.contains(BiometricType.face)) {
+      return Icons.face;
+    } else if (_availableBiometrics.contains(BiometricType.fingerprint)) {
+      return Icons.fingerprint;
+    } else if (_availableBiometrics.contains(BiometricType.iris)) {
+      return Icons.visibility;
+    } else if (_availableBiometrics.isNotEmpty) {
+      return Icons.security;
+    } else {
+      // Fallback for device authentication (PIN, pattern, password)
+      return Icons.lock;
+    }
+  }
+
+  // Get the appropriate label for authentication method
+  String _getAuthenticationLabel() {
+    if (_availableBiometrics.contains(BiometricType.face)) {
+      return 'Use Face ID';
+    } else if (_availableBiometrics.contains(BiometricType.fingerprint)) {
+      return 'Use Fingerprint';
+    } else if (_availableBiometrics.contains(BiometricType.iris)) {
+      return 'Use Iris';
+    } else if (_availableBiometrics.isNotEmpty) {
+      return 'Use Biometric';
+    } else {
+      // Fallback for device authentication (PIN, pattern, password)
+      return 'Use Device Authentication';
     }
   }
 
@@ -378,10 +415,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
               ),
 
-              // Biometric Authentication Button
-              if (!_isSettingUp &&
-                  _biometricAvailable &&
-                  _biometricEnabled) ...[
+              // Local Authentication Button (Biometrics, PIN, Pattern, Password)
+              if (!_isSettingUp && _biometricAvailable) ...[
                 const SizedBox(height: 16),
                 const Text(
                   'or',
@@ -391,16 +426,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
                   onPressed: _isLoading ? null : _authenticateWithBiometrics,
-                  icon: Icon(
-                    _availableBiometrics.contains(BiometricType.face)
-                        ? Icons.face
-                        : Icons.fingerprint,
-                  ),
-                  label: Text(
-                    _availableBiometrics.contains(BiometricType.face)
-                        ? 'Use Face ID'
-                        : 'Use Fingerprint',
-                  ),
+                  icon: Icon(_getAuthenticationIcon()),
+                  label: Text(_getAuthenticationLabel()),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),

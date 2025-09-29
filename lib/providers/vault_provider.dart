@@ -110,6 +110,7 @@ class VaultProvider extends ChangeNotifier {
     }
   }
 
+
   // Clear all caches (useful for logout or major data changes)
   void clearAllCaches() {
     _allVaults = null;

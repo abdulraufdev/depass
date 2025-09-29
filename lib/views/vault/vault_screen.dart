@@ -32,7 +32,7 @@ class _VaultScreenState extends State<VaultScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
-        middle: Text('Vault'),
+        middle: Text('Manage Vaults'),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),

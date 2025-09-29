@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:depass/services/database_service.dart';
 import 'package:depass/models/pass.dart';
 
@@ -252,5 +255,162 @@ class PasswordProvider extends ChangeNotifier {
   Future<void> refreshAllData() async {
     clearAllCaches();
     await loadAllPasses();
+  }
+
+  // Export all passwords to JSON
+  Future<Map<String, dynamic>> exportToJSON() async {
+    try {
+      // Ensure we have all passes loaded
+      if (_allPasses == null) {
+        await loadAllPasses();
+      }
+
+      final exportData = <String, dynamic>{
+        'version': '1.0',
+        'exported_at': DateTime.now().toIso8601String(),
+        'total_passwords': _allPasses?.length ?? 0,
+        'passwords': <Map<String, dynamic>>[],
+      };
+
+      if (_allPasses != null && _allPasses!.isNotEmpty) {
+        for (final pass in _allPasses!) {
+          // Load password data if not cached
+          if (!_passwordCache.containsKey(pass.PassId)) {
+            await loadPasswordData(pass.PassId);
+          }
+
+          final passwordData = _passwordCache[pass.PassId] ?? [];
+          
+          // Group notes by type for better organization
+          final Map<String, List<Map<String, dynamic>>> groupedNotes = {};
+          for (final noteData in passwordData) {
+            final type = noteData['Type'] ?? 'other';
+            if (!groupedNotes.containsKey(type)) {
+              groupedNotes[type] = [];
+            }
+            groupedNotes[type]!.add({
+              'description': noteData['Description'],
+              'created_at': DateTime.fromMillisecondsSinceEpoch(
+                noteData['CreatedAt'] ?? 0
+              ).toIso8601String(),
+              'updated_at': DateTime.fromMillisecondsSinceEpoch(
+                noteData['UpdatedAt'] ?? 0
+              ).toIso8601String(),
+            });
+          }
+
+          (exportData['passwords'] as List<Map<String, dynamic>>).add({
+            'id': pass.PassId,
+            'title': pass.PassTitle,
+            'vault_id': pass.VaultId,
+            'created_at': DateTime.fromMillisecondsSinceEpoch(
+              pass.CreatedAt
+            ).toIso8601String(),
+            'fields': groupedNotes,
+            'total_fields': passwordData.length,
+          });
+        }
+      }
+
+      return exportData;
+    } catch (e) {
+      print('Error exporting to JSON: $e');
+      rethrow;
+    }
+  }
+
+  // Export specific password to JSON
+  Future<Map<String, dynamic>> exportPasswordToJSON(int passId) async {
+    try {
+      final pass = _allPasses?.firstWhere((p) => p.PassId == passId);
+      if (pass == null) {
+        throw Exception('Password with ID $passId not found');
+      }
+
+      // Load password data if not cached
+      if (!_passwordCache.containsKey(passId)) {
+        await loadPasswordData(passId);
+      }
+
+      final passwordData = _passwordCache[passId] ?? [];
+      
+      // Group notes by type
+      final Map<String, List<Map<String, dynamic>>> groupedNotes = {};
+      for (final noteData in passwordData) {
+        final type = noteData['Type'] ?? 'other';
+        if (!groupedNotes.containsKey(type)) {
+          groupedNotes[type] = [];
+        }
+        groupedNotes[type]!.add({
+          'description': noteData['Description'],
+          'created_at': DateTime.fromMillisecondsSinceEpoch(
+            noteData['CreatedAt'] ?? 0
+          ).toIso8601String(),
+          'updated_at': DateTime.fromMillisecondsSinceEpoch(
+            noteData['UpdatedAt'] ?? 0
+          ).toIso8601String(),
+        });
+      }
+
+      return {
+        'version': '1.0',
+        'exported_at': DateTime.now().toIso8601String(),
+        'password': {
+          'id': pass.PassId,
+          'title': pass.PassTitle,
+          'vault_id': pass.VaultId,
+          'created_at': DateTime.fromMillisecondsSinceEpoch(
+            pass.CreatedAt
+          ).toIso8601String(),
+          'fields': groupedNotes,
+          'total_fields': passwordData.length,
+        },
+      };
+    } catch (e) {
+      print('Error exporting password to JSON: $e');
+      rethrow;
+    }
+  }
+
+  // Save JSON to file
+  Future<String> saveJSONToFile(Map<String, dynamic> jsonData, {String? fileName}) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final defaultFileName = 'depass_export_$timestamp.json';
+      final file = File('${directory.path}/${fileName ?? defaultFileName}');
+      
+      final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
+      await file.writeAsString(jsonString);
+      
+      return file.path;
+    } catch (e) {
+      print('Error saving JSON to file: $e');
+      rethrow;
+    }
+  }
+
+  // Export all passwords to JSON file
+  Future<String> exportAllPasswordsToFile({String? fileName}) async {
+    try {
+      final jsonData = await exportToJSON();
+      return await saveJSONToFile(jsonData, fileName: fileName);
+    } catch (e) {
+      print('Error exporting all passwords to file: $e');
+      rethrow;
+    }
+  }
+
+  // Export specific password to JSON file
+  Future<String> exportPasswordToFile(int passId, {String? fileName}) async {
+    try {
+      final jsonData = await exportPasswordToJSON(passId);
+      final pass = _allPasses?.firstWhere((p) => p.PassId == passId);
+      final defaultFileName = 'depass_${pass?.PassTitle.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_${DateTime.now().millisecondsSinceEpoch}.json';
+      return await saveJSONToFile(jsonData, fileName: fileName ?? defaultFileName);
+    } catch (e) {
+      print('Error exporting password to file: $e');
+      rethrow;
+    }
   }
 }

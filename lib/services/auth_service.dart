@@ -103,16 +103,15 @@ class AuthService {
     await _storage.write(key: _biometricEnabledKey, value: enabled.toString());
   }
 
-  // Authenticate with biometrics
+  // Authenticate with local authentication (biometrics, PIN, pattern, password)
   Future<bool> authenticateWithBiometrics() async {
     try {
-      if (!await isBiometricEnabled()) return false;
       if (!await isBiometricAvailable()) return false;
 
       final isAuthenticated = await _localAuth.authenticate(
         localizedReason: 'Please authenticate to access your passwords',
         options: const AuthenticationOptions(
-          biometricOnly: true,
+          biometricOnly: false,  // Allow all authentication methods
           stickyAuth: true,
         ),
       );
@@ -120,6 +119,11 @@ class AuthService {
       if (isAuthenticated) {
         _isAuthenticated = true;
         await _updateLastActiveTime();
+        
+        // Auto-enable biometric authentication if it was successful and not enabled yet
+        if (!await isBiometricEnabled()) {
+          await setBiometricEnabled(true);
+        }
       }
 
       return isAuthenticated;

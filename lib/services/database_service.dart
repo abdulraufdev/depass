@@ -167,7 +167,7 @@ class DBService {
   }
 
   // Delete vault (only if the vault is empty)
-  Future<void> deleteVault(int id) async {
+  Future<bool> deleteVault(int id) async {
     final db = await getDB();
 
     // Check if the vault is empty
@@ -180,9 +180,10 @@ class DBService {
     if (passes.isEmpty) {
       // If empty, delete the vault
       await db.delete(_vaultsTable, where: 'VaultId = ?', whereArgs: [id]);
+      return true;
     } else {
       // If not empty, you might want to handle this case
-      // For example, you could show a message to the user
+      return false;
     }
   }
 
@@ -223,6 +224,19 @@ class DBService {
     
     // Then delete the pass itself
     await db.delete(_passTable, where: 'PassId = ?', whereArgs: [id]);
+  }
+
+  // move pass
+  Future<void> movePass(int passId, int vaultId) async {
+    final db = await getDB();
+    await db.update(
+        _passTable,
+        {
+          'VaultId': vaultId,
+        },
+        where: 'PassId = ?',
+        whereArgs: [passId],
+      );
   }
 
   // ========== NOTE CRUD OPERATIONS ==========

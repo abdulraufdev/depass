@@ -32,7 +32,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _getPasses()async {
     final allPasses =await db.getAllPasses();
-    setState(() async {
+    setState(() {
       passes = allPasses;
       filtered = passes;
     });
