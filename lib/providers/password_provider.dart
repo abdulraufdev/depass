@@ -1,24 +1,24 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:developer';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:depass/services/database_service.dart';
 import 'package:depass/models/pass.dart';
 
 class PasswordProvider extends ChangeNotifier {
   final DBService _dbService = DBService.instance;
-  
+
   // Cache for password data by ID
   final Map<int, List<Map<String, dynamic>>> _passwordCache = {};
-  
+
   // Cache for all passes list
   List<Pass>? _allPasses;
-  
+
   // Loading states
   final Map<int, bool> _loadingStates = {};
   bool _isLoadingAllPasses = false;
-  
+
   // Current selected vault ID
   int _currentVaultId = 0;
 
@@ -37,11 +37,11 @@ class PasswordProvider extends ChangeNotifier {
   List<Pass>? get allPasses => _allPasses;
   bool get isLoadingAllPasses => _isLoadingAllPasses;
   int get currentVaultId => _currentVaultId;
-  
+
   List<Map<String, dynamic>>? getPasswordData(int passId) {
     return _passwordCache[passId];
   }
-  
+
   bool isLoadingPassword(int passId) {
     return _loadingStates[passId] ?? false;
   }
@@ -50,7 +50,7 @@ class PasswordProvider extends ChangeNotifier {
   Future<void> loadAllPasses() async {
     _isLoadingAllPasses = true;
     _safeNotifyListeners();
-    
+
     try {
       final passes = await _dbService.getAllPasses();
       _allPasses = passes;
@@ -65,7 +65,9 @@ class PasswordProvider extends ChangeNotifier {
 
   // Set current vault and load filtered passes
   Future<void> setCurrentVault(int vaultId) async {
-    print('setCurrentVault called with vaultId: $vaultId, current: $_currentVaultId, allPasses: ${_allPasses?.length}');
+    print(
+      'setCurrentVault called with vaultId: $vaultId, current: $_currentVaultId, allPasses: ${_allPasses?.length}',
+    );
     if (_currentVaultId != vaultId || _allPasses == null) {
       _currentVaultId = vaultId;
       await loadFilteredPasses(vaultId);
@@ -79,11 +81,13 @@ class PasswordProvider extends ChangeNotifier {
     _currentVaultId = vaultId; // Update current vault ID
     _isLoadingAllPasses = true;
     _safeNotifyListeners();
-    
+
     try {
       print('Loading filtered passes for vaultId: $vaultId');
       final passes = await _dbService.getAllPasses();
-      _allPasses = passes.where((pass) => vaultId == 0 || pass.VaultId == vaultId).toList();
+      _allPasses = passes
+          .where((pass) => vaultId == 0 || pass.VaultId == vaultId)
+          .toList();
       print('Loaded ${_allPasses?.length ?? 0} passes for vaultId: $vaultId');
     } catch (e) {
       print('Error loading all passes: $e');
@@ -98,7 +102,7 @@ class PasswordProvider extends ChangeNotifier {
   Future<void> loadPasswordData(int passId) async {
     _loadingStates[passId] = true;
     _safeNotifyListeners();
-    
+
     try {
       final data = await _dbService.getNotesByPassId(passId);
       _passwordCache[passId] = data;
@@ -115,17 +119,19 @@ class PasswordProvider extends ChangeNotifier {
   Future<void> updatePasswordTitle(int passId, String newTitle) async {
     try {
       await _dbService.updatePass(passId, newTitle);
-      
+
       // Update cached data
       if (_passwordCache.containsKey(passId)) {
         for (var item in _passwordCache[passId]!) {
           item['PassTitle'] = newTitle;
         }
       }
-      
+
       // Update all passes cache
       if (_allPasses != null) {
-        final passIndex = _allPasses!.indexWhere((pass) => pass.PassId == passId);
+        final passIndex = _allPasses!.indexWhere(
+          (pass) => pass.PassId == passId,
+        );
         if (passIndex != -1) {
           _allPasses![passIndex] = Pass(
             PassId: _allPasses![passIndex].PassId,
@@ -135,7 +141,7 @@ class PasswordProvider extends ChangeNotifier {
           );
         }
       }
-      
+
       _safeNotifyListeners();
     } catch (e) {
       print('Error updating password title: $e');
@@ -144,10 +150,14 @@ class PasswordProvider extends ChangeNotifier {
   }
 
   // Update note
-  Future<void> updateNote(int noteId, String newDescription, String type) async {
+  Future<void> updateNote(
+    int noteId,
+    String newDescription,
+    String type,
+  ) async {
     try {
       await _dbService.updateNote(noteId, newDescription, type);
-      
+
       // Update cached data
       for (var passwordData in _passwordCache.values) {
         for (var note in passwordData) {
@@ -159,7 +169,7 @@ class PasswordProvider extends ChangeNotifier {
           }
         }
       }
-      
+
       _safeNotifyListeners();
     } catch (e) {
       print('Error updating note: $e');
@@ -179,7 +189,7 @@ class PasswordProvider extends ChangeNotifier {
         type: type,
         passId: passId,
       );
-      
+
       // Refresh the specific password data to include the new note
       await loadPasswordData(passId);
     } catch (e) {
@@ -200,7 +210,7 @@ class PasswordProvider extends ChangeNotifier {
         title: title,
         vaultId: vaultId,
       );
-      
+
       // Refresh all passes to include the new password
       await loadAllPasses();
     } catch (e) {
@@ -214,18 +224,44 @@ class PasswordProvider extends ChangeNotifier {
     try {
       // Note: You'll need to implement deletePass in DBService
       // await _dbService.deletePass(passId);
-      
+
       // Remove from caches
       _passwordCache.remove(passId);
       _loadingStates.remove(passId);
-      
+
       if (_allPasses != null) {
         _allPasses!.removeWhere((pass) => pass.PassId == passId);
       }
-      
+
       _safeNotifyListeners();
     } catch (e) {
       print('Error deleting password: $e');
+      rethrow;
+    }
+  }
+
+  // Move a password to another vault
+  Future<void> movePassword(int passId, int newVaultId) async {
+    try {
+      await _dbService.movePass(passId, newVaultId);
+      // Update all passes cache
+      if (_allPasses != null) {
+        final passIndex = _allPasses!.indexWhere(
+          (pass) => pass.PassId == passId,
+        );
+        if (passIndex != -1) {
+          _allPasses![passIndex] = Pass(
+            PassId: _allPasses![passIndex].PassId,
+            PassTitle: _allPasses![passIndex].PassTitle,
+            CreatedAt: _allPasses![passIndex].CreatedAt,
+            VaultId: newVaultId,
+          );
+        }
+      }
+
+      _safeNotifyListeners();
+    } catch (e) {
+      print('Error moving password: $e');
       rethrow;
     }
   }
@@ -280,7 +316,7 @@ class PasswordProvider extends ChangeNotifier {
           }
 
           final passwordData = _passwordCache[pass.PassId] ?? [];
-          
+
           // Group notes by type for better organization
           final Map<String, List<Map<String, dynamic>>> groupedNotes = {};
           for (final noteData in passwordData) {
@@ -291,10 +327,10 @@ class PasswordProvider extends ChangeNotifier {
             groupedNotes[type]!.add({
               'description': noteData['Description'],
               'created_at': DateTime.fromMillisecondsSinceEpoch(
-                noteData['CreatedAt'] ?? 0
+                noteData['CreatedAt'] ?? 0,
               ).toIso8601String(),
               'updated_at': DateTime.fromMillisecondsSinceEpoch(
-                noteData['UpdatedAt'] ?? 0
+                noteData['UpdatedAt'] ?? 0,
               ).toIso8601String(),
             });
           }
@@ -304,7 +340,7 @@ class PasswordProvider extends ChangeNotifier {
             'title': pass.PassTitle,
             'vault_id': pass.VaultId,
             'created_at': DateTime.fromMillisecondsSinceEpoch(
-              pass.CreatedAt
+              pass.CreatedAt,
             ).toIso8601String(),
             'fields': groupedNotes,
             'total_fields': passwordData.length,
@@ -333,34 +369,26 @@ class PasswordProvider extends ChangeNotifier {
       }
 
       final passwordData = _passwordCache[passId] ?? [];
-      
+
       // Group notes by type
-      final Map<String, List<Map<String, dynamic>>> groupedNotes = {};
+      final Map<String, List<String>> groupedNotes = {};
       for (final noteData in passwordData) {
         final type = noteData['Type'] ?? 'other';
         if (!groupedNotes.containsKey(type)) {
           groupedNotes[type] = [];
         }
-        groupedNotes[type]!.add({
-          'description': noteData['Description'],
-          'created_at': DateTime.fromMillisecondsSinceEpoch(
-            noteData['CreatedAt'] ?? 0
-          ).toIso8601String(),
-          'updated_at': DateTime.fromMillisecondsSinceEpoch(
-            noteData['UpdatedAt'] ?? 0
-          ).toIso8601String(),
-        });
+        groupedNotes[type]!.add(noteData['Description']);
       }
 
       return {
         'version': '1.0',
-        'exported_at': DateTime.now().toIso8601String(),
+        'export_date': DateTime.now().toIso8601String(),
         'password': {
-          'id': pass.PassId,
+          'id': pass!.PassId,
           'title': pass.PassTitle,
           'vault_id': pass.VaultId,
           'created_at': DateTime.fromMillisecondsSinceEpoch(
-            pass.CreatedAt
+            pass.CreatedAt,
           ).toIso8601String(),
           'fields': groupedNotes,
           'total_fields': passwordData.length,
@@ -373,30 +401,50 @@ class PasswordProvider extends ChangeNotifier {
   }
 
   // Save JSON to file
-  Future<String> saveJSONToFile(Map<String, dynamic> jsonData, {String? fileName}) async {
+  Future<String> saveJSONToFile(
+    Map<String, dynamic> jsonData, {
+    String? fileName,
+  }) async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
+      ;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final defaultFileName = 'depass_export_$timestamp.json';
-      final file = File('${directory.path}/${fileName ?? defaultFileName}');
-      
-      final jsonString = const JsonEncoder.withIndent('  ').convert(jsonData);
-      await file.writeAsString(jsonString);
-      
-      return file.path;
+      final defaultFileName = 'password_export_$timestamp.json';
+
+      final output = await FilePicker.platform.saveFile(
+        dialogTitle: 'Please select an output file:',
+        fileName: fileName ?? defaultFileName,
+        bytes: utf8.encode(
+          const JsonEncoder.withIndent('  ').convert(jsonData),
+        ),
+      );
+
+      if (output == null) {
+        throw 'File save cancelled';
+      }
+
+      return output;
     } catch (e) {
-      print('Error saving JSON to file: $e');
+      log('Error saving JSON to file: $e');
       rethrow;
     }
   }
 
-  // Export all passwords to JSON file
-  Future<String> exportAllPasswordsToFile({String? fileName}) async {
+  // Helper method to escape CSV values
+  String _escapeCsvValue(String value) {
+    // If value contains comma, newline, or quote, wrap in quotes and escape quotes
+    if (value.contains(',') || value.contains('\\n') || value.contains('"')) {
+      return '"${value.replaceAll('"', '""')}"';
+    }
+    return value;
+  }
+
+  // Export all passwords to CSV file
+  Future<String> exportAllPasswordsToCSV() async {
     try {
-      final jsonData = await exportToJSON();
-      return await saveJSONToFile(jsonData, fileName: fileName);
+      final csvData = await exportToCSV();
+      return await saveCSVToFile(csvData);
     } catch (e) {
-      print('Error exporting all passwords to file: $e');
+      log('Error exporting all passwords to file: $e');
       rethrow;
     }
   }
@@ -406,10 +454,87 @@ class PasswordProvider extends ChangeNotifier {
     try {
       final jsonData = await exportPasswordToJSON(passId);
       final pass = _allPasses?.firstWhere((p) => p.PassId == passId);
-      final defaultFileName = 'depass_${pass?.PassTitle.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}_${DateTime.now().millisecondsSinceEpoch}.json';
-      return await saveJSONToFile(jsonData, fileName: fileName ?? defaultFileName);
+      final defaultFileName = 'password_${pass?.PassTitle}.json';
+      return await saveJSONToFile(
+        jsonData,
+        fileName: fileName ?? defaultFileName,
+      );
     } catch (e) {
-      print('Error exporting password to file: $e');
+      log('Error exporting password to file: $e');
+      rethrow;
+    }
+  }
+
+  Future<String> exportToCSV() async {
+    try {
+      // Ensure we have all passes loaded
+      if (_allPasses == null) {
+        await loadAllPasses();
+      }
+
+      // CSV header
+      String csvContent =
+          'Password ID,Title,Vault ID,Vault Name,Created Date,Field Type,Field Content,Field Created Date\n';
+
+      if (_allPasses != null && _allPasses!.isNotEmpty) {
+        for (final pass in _allPasses!) {
+          // Load password data if not cached
+          if (!_passwordCache.containsKey(pass.PassId)) {
+            await loadPasswordData(pass.PassId);
+          }
+
+          final passwordData = _passwordCache[pass.PassId] ?? [];
+          final vaultData = await _dbService.getVaultById(pass.VaultId);
+          final vaultName = vaultData != null ? vaultData.VaultTitle : '';
+          final passCreatedDate = DateTime.fromMillisecondsSinceEpoch(
+            pass.CreatedAt,
+          ).toIso8601String();
+
+          if (passwordData.isEmpty) {
+            // Add row even if no password data
+            csvContent +=
+                '${_escapeCsvValue(pass.PassId.toString())},${_escapeCsvValue(pass.PassTitle)},${_escapeCsvValue(pass.VaultId.toString())},${_escapeCsvValue(vaultName)},${_escapeCsvValue(passCreatedDate)},,,,\n';
+          } else {
+            // Add a row for each field
+            for (final noteData in passwordData) {
+              final fieldType = noteData['Type'] ?? 'other';
+              final fieldContent = noteData['Description'] ?? '';
+              final fieldCreatedDate = DateTime.fromMillisecondsSinceEpoch(
+                noteData['CreatedAt'] ?? 0,
+              ).toIso8601String();
+
+              csvContent +=
+                  '${_escapeCsvValue(pass.PassId.toString())},${_escapeCsvValue(pass.PassTitle)},${_escapeCsvValue(pass.VaultId.toString())},${_escapeCsvValue(vaultName)},${_escapeCsvValue(passCreatedDate)},${_escapeCsvValue(fieldType)},${_escapeCsvValue(fieldContent)},${_escapeCsvValue(fieldCreatedDate)}\n';
+            }
+          }
+        }
+      }
+      log('CSV export completed, length: \n${csvContent.length}');
+      return csvContent;
+    } catch (e) {
+      log('Error exporting to CSV: $e');
+      rethrow;
+    }
+  }
+
+  Future<String> saveCSVToFile(String csvData) async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final defaultFileName = 'depass_export_$timestamp.csv';
+
+      final output = await FilePicker.platform.saveFile(
+        dialogTitle: 'Please select an output file:',
+        fileName: defaultFileName,
+        bytes: utf8.encode(csvData),
+      );
+
+      if (output == null) {
+        throw 'File save cancelled';
+      }
+
+      return output;
+    } catch (e) {
+      log('Error saving CSV to file: $e');
       rethrow;
     }
   }

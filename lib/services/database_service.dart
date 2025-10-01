@@ -191,7 +191,6 @@ class DBService {
 
   // Create a new pass
 
-  // Get all passes
 
   // Get pass by Id
   Future<List<Pass>> getAllPasses() async {
@@ -200,6 +199,12 @@ class DBService {
     return List.generate(maps.length, (i) {
       return Pass.fromMap(maps[i]);
     });
+  }
+
+  Future<Pass> getPassById(int passId) async {
+    final db = await getDB();
+    final List<Map<String, dynamic>> maps = await db.query(_passTable, where: 'PassId = ?', whereArgs: [passId]);
+    return Pass.fromMap(maps.first);
   }
 
   // Update pass
@@ -317,7 +322,7 @@ class DBService {
     final db = await getDB();
     final List<Map<String, dynamic>> maps = await db.rawQuery(
       '''
-    SELECT n.NoteId as NoteId, n.Description as Description, n.Type as Type, p.PassTitle as PassTitle, p.PassId as PassId FROM $_notesTable as n 
+    SELECT n.NoteId as NoteId, n.CreatedAt as CreatedAt, n.Description as Description, n.Type as Type, p.PassTitle as PassTitle, p.PassId as PassId FROM $_notesTable as n 
     INNER JOIN $_passTable as p on n.PassId = p.passId 
     WHERE p.PassId = ?''',
       [passId],

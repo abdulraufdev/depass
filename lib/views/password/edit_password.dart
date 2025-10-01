@@ -1,3 +1,6 @@
+import 'dart:developer';
+
+import 'package:depass/models/pass.dart';
 import 'package:depass/providers/password_provider.dart';
 import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/services/database_service.dart';
@@ -7,9 +10,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
 class EditPasswordScreen extends StatefulWidget {
-  const EditPasswordScreen({super.key, required this.password});
+  const EditPasswordScreen({super.key, required this.passwordId});
 
-  final List<Map<String,dynamic>> password;
+  final int passwordId;
   @override
   State<EditPasswordScreen> createState() => _EditPasswordScreenState();
 }
@@ -17,11 +20,16 @@ class EditPasswordScreen extends StatefulWidget {
 class _EditPasswordScreenState extends State<EditPasswordScreen> {
   final DBService _databaseService = DBService.instance;
   int _selectedIndex = 0;
-  late final TextEditingController _titleController = TextEditingController(text: widget.password[0]['PassTitle']);
+  int _initialVault= 1;
+  late final TextEditingController _titleController = TextEditingController();
   
   // Store provider reference to avoid read-only context issues
   PasswordProvider? _passwordProvider;
   VaultProvider? _vaultProvider;
+  
+  // Password data fetched from provider
+  List<Map<String, dynamic>>? _passwordData;
+  bool _vaultIndexInitialized = false;
 
   List<TextEditingController> _emailControllers = [
     TextEditingController(),
@@ -106,10 +114,12 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
   }
 
   List<TextEditingController> _addControllers(String type){
-    return List.generate(widget.password.where(
+    if (_passwordData == null) return [TextEditingController()];
+    
+    return List.generate(_passwordData!.where(
             (item) => item['Type'] == type
     ).length, (i){
-      return TextEditingController(text: widget.password.where(
+      return TextEditingController(text: _passwordData!.where(
               (item) => item['Type'] == type
       ).toList()[i]['Description']);
     });
@@ -121,13 +131,37 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final vaultProvider = Provider.of<VaultProvider>(context, listen: false);
+        final passwordProvider = Provider.of<PasswordProvider>(context, listen: false);
+        
+        // Load vaults
         vaultProvider.loadAllVaults();
+        
+        // Load password data
+        _loadPasswordData(passwordProvider);
       }
     });
-    _emailControllers = _addControllers('email');
-    _passwordControllers = _addControllers('password');
-    _textControllers = _addControllers('text');
-    _websiteControllers = _addControllers('website');
+  }
+  
+  Future<void> _loadPasswordData(PasswordProvider passwordProvider) async {
+    await passwordProvider.loadPasswordData(widget.passwordId);
+    final data = passwordProvider.getPasswordData(widget.passwordId);
+    
+    if (data != null && data.isNotEmpty && mounted) {
+      final Pass pass = await _databaseService.getPassById(widget.passwordId);
+      setState(() {
+        _passwordData = data;
+        log("Loaded password data: $_passwordData");
+        // Initialize title controller with the password title
+        _titleController.text = data[0]['PassTitle'] ?? '';
+        // Initialize field controllers
+        _emailControllers = _addControllers('email');
+        _passwordControllers = _addControllers('password');
+        _textControllers = _addControllers('text');
+        _websiteControllers = _addControllers('website');
+        _initialVault = pass.VaultId;
+      });
+      log("Initial vault ID: $_initialVault");
+    }
   }
 
   @override
@@ -159,11 +193,11 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
       }
 
       // 1. Update PassTitle if it changed
-      final currentTitle = widget.password.isNotEmpty ? widget.password[0]['PassTitle'] as String? ?? '' : '';
+      final currentTitle = _passwordData != null && _passwordData!.isNotEmpty ? _passwordData![0]['PassTitle'] as String? ?? '' : '';
       final newTitle = _titleController.text.trim();
       
-      if (currentTitle != newTitle && widget.password.isNotEmpty) {
-        final passId = widget.password[0]['PassId'];
+      if (currentTitle != newTitle && _passwordData != null && _passwordData!.isNotEmpty) {
+        final passId = _passwordData![0]['PassId'];
         await _databaseService.updatePass(passId, newTitle);
         
         // Update provider after successful database update
@@ -173,7 +207,6 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
           await _passwordProvider!.loadAllPasses();
         }
       }
-      
       // 2. Update/Create notes for each type
       await _saveNotesOfType('email', _emailControllers);
       await _saveNotesOfType('password', _passwordControllers);
@@ -233,11 +266,11 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
 
   Future<void> _saveNotesOfType(String type, List<TextEditingController> controllers) async {
     // Get existing notes of this type
-    final existingNotes = widget.password.where(
+    final existingNotes = _passwordData?.where(
       (item) => item['Type'] == type
-    ).toList();
+    ).toList() ?? [];
 
-    final passId = widget.password.isNotEmpty ? widget.password[0]['PassId'] : null;
+    final passId = _passwordData != null && _passwordData!.isNotEmpty ? _passwordData![0]['PassId'] : null;
     if (passId == null) return;
 
     // Process each controller
@@ -388,6 +421,17 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Show loading indicator if password data is not loaded yet
+    if (_passwordData == null) {
+      return CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          transitionBetweenRoutes: false,
+          trailing: CupertinoActivityIndicator(),
+        ),
+        child: Center(child: CupertinoActivityIndicator()),
+      );
+    }
+    
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
@@ -409,10 +453,26 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                 builder: (context, vaultProvider, child) {
                   final vaults = vaultProvider.allVaults ?? [];
                   
-                  // Ensure selected index is within bounds
-                  if (_selectedIndex >= vaults.length) {
-                    _selectedIndex = vaults.isNotEmpty ? 0 : 0;
+                  // Initialize vault index when vaults are loaded and not yet initialized
+                  // if (vaults.isNotEmpty && !_vaultIndexInitialized && _passwordData != null && _passwordData!.isNotEmpty) {
+                  //   setState(() {
+                  //     _selectedIndex = vaults.indexWhere((vault) => vault.VaultId == _initialVault);
+                  //     if (_selectedIndex == -1) {
+                  //       _selectedIndex = 0; // Default to first vault if not found
+                  //     }
+                  //     _vaultIndexInitialized = true;
+                  //   });
+                  // }
+                  if(!_vaultIndexInitialized){
+                    _selectedIndex = vaults.indexWhere((vault) => vault.VaultId == _initialVault); // Reset to first vault if out of bounds
+                    _vaultIndexInitialized = true;
                   }
+                  
+                  // Ensure selected index is within bounds
+                  if (vaults.isNotEmpty && (_selectedIndex < 0 || _selectedIndex >= vaults.length)) {
+                     _selectedIndex = vaults.indexWhere((vault) => vault.VaultId == _initialVault); // Reset to first vault if out of bounds
+                  }
+                  
                   
                   return CupertinoButton(
                     sizeStyle: CupertinoButtonSize.small,
@@ -439,7 +499,11 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                           return SizedBox(
                             height: 200.0,
                             child: CupertinoPicker(
-                                scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
+                                scrollController: FixedExtentScrollController(
+                                  initialItem: _selectedIndex >= 0 && _selectedIndex < vaults.length 
+                                    ? _selectedIndex 
+                                    : 0
+                                ),
                                 backgroundColor: DepassConstants.background,
                                 itemExtent: 42.0,
                                 onSelectedItemChanged: (int index) {
