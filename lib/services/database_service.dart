@@ -120,13 +120,22 @@ class DBService {
   // ========== VAULT CRUD OPERATIONS ==========
 
   // Create a new vault
-  Future<void> createVault(String title) async {
+  Future<void> createVault(String title, {int? vaultId}) async {
     final db = await getDB();
-    await db.insert(_vaultsTable, {
-      'VaultTitle': title,
-      'CreatedAt': DateTime.now().millisecondsSinceEpoch,
-      'UpdatedAt': DateTime.now().millisecondsSinceEpoch,
-    });
+    if (vaultId != null) {
+      await db.insert(_vaultsTable, {
+        'VaultId': vaultId,
+        'VaultTitle': title,
+        'CreatedAt': DateTime.now().millisecondsSinceEpoch,
+        'UpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    } else {
+      await db.insert(_vaultsTable, {
+        'VaultTitle': title,
+        'CreatedAt': DateTime.now().millisecondsSinceEpoch,
+        'UpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    }
   }
 
   // Get all vaults
@@ -378,4 +387,11 @@ class DBService {
   // Restore database from JSON
 
   // Clean up old notes (optional maintenance function)
+  Future<void> clearAllData() async {
+    final db = await getDB();
+    await db.delete(_notesTable);
+    await db.delete(_passTable);
+    await db.delete(_vaultsTable);
+    
+  }
 }

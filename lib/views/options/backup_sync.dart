@@ -1,7 +1,6 @@
 import 'package:depass/providers/password_provider.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:path/path.dart';
 import 'package:provider/provider.dart';
@@ -80,10 +79,10 @@ class BackupSyncScreen extends StatelessWidget {
                             Navigator.of(context).pop();
                             _exportToCSV(context);
                           },
-                          child: Text('Yes'),
+                          child: Text('Export'),
                         ),
                         CupertinoDialogAction(
-                          child: Text('No'),
+                          child: Text('Cancel'),
                           onPressed: () {
                             Navigator.of(context).pop();
                           },

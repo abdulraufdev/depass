@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:typed_data';
+import 'package:depass/models/note.dart';
+import 'package:depass/models/vault.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
@@ -384,7 +387,7 @@ class PasswordProvider extends ChangeNotifier {
         'version': '1.0',
         'export_date': DateTime.now().toIso8601String(),
         'password': {
-          'id': pass!.PassId,
+          'id': pass.PassId,
           'title': pass.PassTitle,
           'vault_id': pass.VaultId,
           'created_at': DateTime.fromMillisecondsSinceEpoch(
@@ -537,5 +540,206 @@ class PasswordProvider extends ChangeNotifier {
       log('Error saving CSV to file: $e');
       rethrow;
     }
+  }
+
+  Future<void> importFromCSVFile() async {
+    try {
+      // Pick the CSV file
+      final result = await FilePicker.platform.pickFiles(
+        dialogTitle: 'Select CSV file to import',
+        allowedExtensions: ['csv'],
+        type: FileType.custom,
+        withData: true, // This ensures file bytes are loaded
+      );
+
+      if (result == null || result.files.isEmpty) {
+        throw 'No file selected';
+      }
+
+      final file = result.files.first;
+      // Try multiple approaches to get file content
+      Uint8List? fileBytes;
+      
+      if (file.bytes != null && file.bytes!.isNotEmpty) {
+        fileBytes = file.bytes!;
+        log('Using file.bytes, length: ${fileBytes.length}');
+      }
+
+      if (fileBytes == null || fileBytes.isEmpty) {
+        throw 'Failed to read file contents - file may be empty or inaccessible';
+      }
+
+      final csvString = utf8.decode(fileBytes);
+      final lines = const LineSplitter().convert(csvString);
+      
+      if (lines.isEmpty) {
+        throw 'File is empty';
+      }
+
+      if (lines.length < 2) {
+        throw 'Invalid CSV format - no data rows found';
+      }
+
+      // Skip header
+      final dataLines = lines.skip(1);
+      
+      // Use Maps for better deduplication
+      Map<int, Pass> uniquePasses = {};
+      Map<int, Vault> uniqueVaults = {};
+      List<Note> allNotes = [];
+      
+      for (final line in dataLines) {
+        if (line.trim().isEmpty) continue; // Skip empty lines
+        
+        final columns = _parseCSVLine(line);
+        if (columns.length < 8) {
+          log('Skipping invalid line: $line');
+          continue; // Skip invalid lines
+        }
+
+        final passId = int.tryParse(columns[0]) ?? 0;
+        final title = columns[1];
+        final vaultId = int.tryParse(columns[2]) ?? 1;
+        final vaultName = columns[3];
+        final createdDate = columns[4];
+        final fieldType = columns[5];
+        final fieldContent = columns[6];
+        final fieldCreatedDate = columns[7];
+
+        // Add pass to map (automatically handles duplicates)
+        if (!uniquePasses.containsKey(passId)) {
+          uniquePasses[passId] = Pass(
+            PassId: passId,
+            PassTitle: title,
+            CreatedAt: createdDate.isNotEmpty
+                ? DateTime.parse(createdDate).millisecondsSinceEpoch
+                : DateTime.now().millisecondsSinceEpoch,
+            VaultId: vaultId,
+          );
+        }
+
+        // Add vault to map (automatically handles duplicates)
+        if (!uniqueVaults.containsKey(vaultId) && vaultName.isNotEmpty) {
+          uniqueVaults[vaultId] = Vault(
+            VaultId: vaultId,
+            VaultTitle: vaultName,
+            CreatedAt: createdDate.isNotEmpty
+                ? DateTime.parse(createdDate).millisecondsSinceEpoch
+                : DateTime.now().millisecondsSinceEpoch,
+            UpdatedAt: DateTime.now().millisecondsSinceEpoch,
+          );
+        }
+
+        // Add note if content is not empty
+        if (fieldContent.isNotEmpty) {
+          allNotes.add(
+            Note(
+              NoteId: 0,
+              Description: fieldContent,
+              Type: fieldType,
+              PassId: passId,
+              CreatedAt: fieldCreatedDate.isNotEmpty
+                  ? DateTime.parse(fieldCreatedDate).millisecondsSinceEpoch
+                  : DateTime.now().millisecondsSinceEpoch,
+              UpdatedAt: DateTime.now().millisecondsSinceEpoch,
+            ),
+          );
+        }
+      }
+
+      if (uniquePasses.isEmpty) {
+        throw 'No valid password entries found in CSV';
+      }
+
+      log('Parsed ${uniquePasses.length} unique passes, ${uniqueVaults.length} unique vaults, ${allNotes.length} notes');
+
+      // Clear existing data and import new data
+      await _dbService.clearAllData();
+      
+      log('Creating ${uniqueVaults.length} unique vaults');
+      for (final vault in uniqueVaults.values) {
+        try {
+          log('About to create vault: ${vault.VaultId} - ${vault.VaultTitle}');
+          await _dbService.createVault(vault.VaultTitle, vaultId: vault.VaultId);
+          log('Successfully created vault: ${vault.VaultId} - ${vault.VaultTitle}');
+        } catch (e) {
+          log('Failed to create vault ${vault.VaultId}: $e');
+        }
+      }
+      
+      // Check how many vaults are actually in the database
+      final allVaultsInDb = await _dbService.getAllVaults();
+      log('Total vaults in database after creation: ${allVaultsInDb.length}');
+      for (final vault in allVaultsInDb) {
+        log('DB Vault: ${vault.VaultId} - ${vault.VaultTitle}');
+      }
+      
+      log('Creating ${uniquePasses.length} unique passwords');
+      for (final pass in uniquePasses.values) {
+        final passNotes = allNotes
+            .where((note) => note.PassId == pass.PassId)
+            .map((note) => {
+                  'Description': note.Description,
+                  'Type': note.Type,
+                })
+            .toList();
+            
+        try {
+          await _dbService.createBulkNotes(
+            notes: passNotes,
+            title: pass.PassTitle,
+            vaultId: pass.VaultId,
+          );
+          log('Created password: ${pass.PassId} - ${pass.PassTitle}');
+        } catch (e) {
+          log('Failed to create password ${pass.PassId}: $e');
+        }
+      }
+
+      // Refresh data
+      await refreshAllData();
+      
+      // Final verification
+      final finalVaultsInProvider = _allPasses?.map((p) => p.VaultId).toSet().length ?? 0;
+      log('Final verification - unique vault IDs in passes: $finalVaultsInProvider');
+      
+      log('Successfully imported ${uniquePasses.length} passwords from CSV');
+    } catch (e) {
+      log('Error importing from CSV: $e');
+      rethrow;
+    }
+  }
+
+  // Helper method to parse CSV line with proper quote handling
+  List<String> _parseCSVLine(String line) {
+    List<String> result = [];
+    bool inQuotes = false;
+    String currentField = '';
+    
+    for (int i = 0; i < line.length; i++) {
+      final char = line[i];
+      
+      if (char == '"') {
+        if (inQuotes && i + 1 < line.length && line[i + 1] == '"') {
+          // Escaped quote
+          currentField += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+        }
+      } else if (char == ',' && !inQuotes) {
+        // Field separator
+        result.add(currentField);
+        currentField = '';
+      } else {
+        currentField += char;
+      }
+    }
+    
+    // Add the last field
+    result.add(currentField);
+    
+    return result;
   }
 }
