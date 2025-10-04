@@ -24,7 +24,7 @@ class CustomPopup extends StatelessWidget {
         child: Align(
           alignment: Alignment.centerRight,
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 36),
+            padding: EdgeInsets.fromLTRB(16, 20, 0, 0),
             width: 300,
             height: double.infinity,
             color: DepassConstants.background,

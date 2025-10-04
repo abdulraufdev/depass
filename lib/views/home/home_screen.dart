@@ -133,10 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   },
                                   children: allVaults.map((vault) => Center(
                                     child: Text(vault.VaultTitle, 
-                                    style: TextStyle(
-                                      color: DepassConstants.text,
-                                      fontWeight: FontWeight.w600
-                                    ),),
+                                    style: DepassTextTheme.dropdown,),
                                   )).toList(),
                                 ),
                               );
@@ -148,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(allVaults.isNotEmpty ? allVaults[_selectedIndex].VaultTitle : "No Vaults", 
-                             style: TextStyle(fontWeight: FontWeight.bold)),
+                             style: DepassTextTheme.boldLabel),
                         Icon(LucideIcons.chevronsUpDown)
                       ],
                     ),

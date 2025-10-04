@@ -1,4 +1,5 @@
 import 'package:depass/services/auth_service.dart';
+import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:depass/views/auth/change_password.dart';
 import 'package:flutter/cupertino.dart';
@@ -41,13 +42,14 @@ class _SecurityScreenState extends State<SecurityScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
-        middle: Text('Security'),
       ),
       child:Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
+            Text('Security', style: DepassTextTheme.heading1),
+            SizedBox(height: 12,),
             CupertinoListTile(title: Text('Change password'),
             trailing: Icon(LucideIcons.chevronRight),
             padding: EdgeInsetsGeometry.symmetric(vertical: 20),

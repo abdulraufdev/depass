@@ -4,6 +4,7 @@ import 'package:depass/models/pass.dart';
 import 'package:depass/providers/password_provider.dart';
 import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/services/database_service.dart';
+import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -483,9 +484,10 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                         border: Border.all(color: CupertinoColors.systemGrey4),
                       ),
                       child: Row(
+                        spacing: 2,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(vaults.isNotEmpty ? vaults[_selectedIndex].VaultTitle : "No Vaults"),
+                          Text(vaults.isNotEmpty ? vaults[_selectedIndex].VaultTitle : "No Vaults", style: DepassTextTheme.boldLabel,),
                           Icon(LucideIcons.chevronDown)
                         ],
                       ),
@@ -514,10 +516,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                                 children: vaults.map((vault) => Center(
                                   child: Text(
                                     vault.VaultTitle,
-                                    style: TextStyle(
-                                        color: DepassConstants.text,
-                                        fontWeight: FontWeight.w600
-                                    ),
+                                      style: DepassTextTheme.boldLabel,
                                   ),
                                 )).toList()
                             ),
@@ -587,7 +586,9 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Add'),
+                      Text('Add',  style: DepassTextTheme.button.copyWith(
+                            fontSize: 16
+                          )),
                       SizedBox(width: 4),
                       Icon(LucideIcons.plus),
                     ],
@@ -597,31 +598,31 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                         context: context,
                         builder: (context) {
                           return CupertinoActionSheet(
-                            title: Text('Add New Item'),
+                            title: Text('Add New Item', style: TextStyle(fontFamily: 'Inter'),),
                             actions: [
                               CupertinoActionSheetAction(
-                                child: Text('Text'),
+                                child: Text('Text', style: DepassTextTheme.dropdown),
                                 onPressed: () {
                                   _addField('Text');
                                   Navigator.pop(context);
                                 },
                               ),
                               CupertinoActionSheetAction(
-                                child: Text('Password'),
+                                child: Text('Password', style: DepassTextTheme.dropdown),
                                 onPressed: () {
                                   _addField('Password');
                                   Navigator.pop(context);
                                 },
                               ),
                               CupertinoActionSheetAction(
-                                child: Text('Email'),
+                                child: Text('Email', style: DepassTextTheme.dropdown),
                                 onPressed: () {
                                   _addField('Email');
                                   Navigator.pop(context);
                                 },
                               ),
                               CupertinoActionSheetAction(
-                                child: Text('Website'),
+                                child: Text('Website', style: DepassTextTheme.dropdown),
                                 onPressed: () {
                                   _addField('Website');
                                   Navigator.pop(context);
@@ -629,7 +630,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                               ),
                             ],
                             cancelButton: CupertinoActionSheetAction(
-                              child: Text('Cancel'),
+                              child: Text('Cancel', style: TextStyle(fontFamily: 'Inter'),),
                               onPressed: () {
                                 Navigator.pop(context);
                               },

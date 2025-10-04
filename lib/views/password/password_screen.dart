@@ -300,7 +300,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
-        middle: Text('Password'),
+        middle: Text('Password', style: TextStyle(fontFamily: 'Inter'),),
         trailing: _isDeleting
             ? CupertinoActivityIndicator()
             : CupertinoButton(

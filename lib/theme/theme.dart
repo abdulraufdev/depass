@@ -11,7 +11,6 @@ class DepassTheme {
     barBackgroundColor: DepassConstants.barBackground,
     textTheme: DepassTextTheme.regular,
     brightness: Brightness.light,
-
   );
 
   // Dark theme
@@ -22,6 +21,12 @@ class DepassTheme {
     barBackgroundColor: CupertinoColors.systemGrey6,
     textTheme: CupertinoTextThemeData(
       primaryColor: CupertinoColors.white,
+      textStyle: TextStyle(
+        fontFamily: 'Inter',
+        fontSize: 16,
+        fontWeight: FontWeight.normal,
+        color: CupertinoColors.white,
+      ),
     ),
   );
 }

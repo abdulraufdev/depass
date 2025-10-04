@@ -1,6 +1,9 @@
+import 'package:depass/theme/text_theme.dart';
+import 'package:depass/utils/constants.dart';
 import 'package:depass/views/vault/create_vault.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../services/auth_service.dart';
 import '../app.dart';
@@ -315,20 +318,20 @@ class _AuthScreenState extends State<AuthScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // App Logo/Icon
-              Icon(
-                Icons.security,
-                size: 80,
-                color: Theme.of(context).primaryColor,
+              SvgPicture.asset(
+                'assets/images/depass.svg',
+                height:120,
+                colorFilter: ColorFilter.mode(
+                  Theme.of(context).primaryColor,
+                  BlendMode.srcIn,
+                ),
               ),
               const SizedBox(height: 16),
 
               // App Title
               Text(
                 'Depass',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).primaryColor,
-                ),
+                style: DepassTextTheme.heading1,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -394,24 +397,22 @@ class _AuthScreenState extends State<AuthScreen> {
               const SizedBox(height: 24),
 
               // Primary Action Button
-              ElevatedButton(
+              CupertinoButton.filled(
                 onPressed: _isLoading
                     ? null
                     : (_isSettingUp
                           ? _setupMasterPassword
                           : _authenticateWithPassword),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CupertinoActivityIndicator(radius: 10),
                       )
                     : Text(
                         _isSettingUp ? 'Setup Password' : 'Unlock',
-                        style: const TextStyle(fontSize: 16),
+                        style: DepassTextTheme.button,
                       ),
               ),
 
@@ -424,12 +425,23 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: _isLoading ? null : _authenticateWithBiometrics,
-                  icon: Icon(_getAuthenticationIcon()),
-                  label: Text(_getAuthenticationLabel()),
-                  style: OutlinedButton.styleFrom(
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: DepassConstants.separator),
+                  ) ,
+                  child: CupertinoButton.tinted(
+                    color: DepassConstants.background,
+                    onPressed: _isLoading ? null : _authenticateWithBiometrics,
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(_getAuthenticationIcon()),
+                        const SizedBox(width: 8),
+                        Text(_getAuthenticationLabel()),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -469,6 +481,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ],
                   ),
                 ),
+                SizedBox(height: 12),
               ],
             ],
           ),

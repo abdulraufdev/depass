@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:depass/providers/password_provider.dart';
+import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -41,12 +42,14 @@ class _RestoreScreenState extends State<RestoreScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
-        middle: Text('Restore'),
       ),
       child:  Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text('Restore', style: DepassTextTheme.heading1),
+            SizedBox(height: 12,),
             CupertinoListTile(
               title: Text('Import data from CSV'),
               leading: Icon(LucideIcons.import),
@@ -54,12 +57,6 @@ class _RestoreScreenState extends State<RestoreScreen> {
               onTap: () {
                 _importData();
               },
-            ),
-            SizedBox(
-              height: 2,
-              child: Container(
-                color: DepassConstants.barBackground,
-              ),
             ),
           ],
         ),

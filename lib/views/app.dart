@@ -29,7 +29,7 @@ class App extends StatelessWidget {
             icon: Icon(LucideIcons.house),
           ),
           BottomNavigationBarItem(
-            icon: Icon(LucideIcons.book),
+            icon: Icon(LucideIcons.lockKeyhole),
           ),
           BottomNavigationBarItem(
             icon: Icon(LucideIcons.squarePen),
@@ -44,7 +44,7 @@ class App extends StatelessWidget {
           index: index,
           children: const [
             HomeScreen(),
-            Center(child: Text('Passwords')),
+            Center(child: Text('Encryption Tools')),
             Center(child: Text('Create')),
             SearchScreen(),
           ],
