@@ -23,9 +23,10 @@ class _GeneratePasswordScreenState extends State<GeneratePasswordScreen> {
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           spacing: 24,
           children: [
-            Text('Generate a secure password', style: DepassTextTheme.heading1),
+            Text('Generate a secure password', style: DepassTextTheme.heading1,),
             Container(
               decoration: BoxDecoration(
                 color: DepassConstants.fadedBackground,
@@ -79,6 +80,7 @@ class _GeneratePasswordScreenState extends State<GeneratePasswordScreen> {
               ],
             ),
             CupertinoButton(
+              padding: EdgeInsets.all(0),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12.0),

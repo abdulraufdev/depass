@@ -62,7 +62,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
               minimumSize: Size(double.infinity, 44),
               borderRadius: BorderRadius.circular(8),
               child: (_isLoading ?
-              CupertinoActivityIndicator(color: DepassConstants.background,) : Text('Save')),
+              CupertinoActivityIndicator(color: DepassConstants.background,) : Text('Save', style: TextStyle(color: DepassConstants.buttonText),)),
               onPressed: () {
                 // Save the edited vault
                 _createVault();

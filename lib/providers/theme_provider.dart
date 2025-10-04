@@ -1,3 +1,4 @@
+import 'package:depass/utils/constants.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,12 +14,14 @@ class ThemeProvider extends ChangeNotifier {
 
   void toggleTheme() {
     _isDarkMode = !_isDarkMode;
+    DepassConstants.updateTheme(_isDarkMode);
     _saveTheme();
     notifyListeners();
   }
 
   void setTheme(bool isDark) {
     _isDarkMode = isDark;
+    DepassConstants.updateTheme(_isDarkMode);
     _saveTheme();
     notifyListeners();
   }
@@ -26,6 +29,7 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     _isDarkMode = prefs.getBool(_themeKey) ?? false;
+    DepassConstants.updateTheme(_isDarkMode);
     notifyListeners();
   }
 

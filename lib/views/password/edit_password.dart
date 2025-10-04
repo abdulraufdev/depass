@@ -381,7 +381,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                         decoration: BoxDecoration(
                           border: hasError 
                             ? Border.all(color: CupertinoColors.systemRed, width: 1)
-                            : null,
+                            : Border.all(color: DepassConstants.fadedBackground),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         onChanged: (_) {
@@ -541,7 +541,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                     decoration: BoxDecoration(
                       border: _validationErrors.containsKey('title') 
                         ? Border.all(color: CupertinoColors.systemRed, width: 1)
-                        : null,
+                        : Border.all(color: DepassConstants.fadedBackground),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     onChanged: (_) {
@@ -590,7 +590,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                             fontSize: 16
                           )),
                       SizedBox(width: 4),
-                      Icon(LucideIcons.plus),
+                      Icon(LucideIcons.plus, color: DepassConstants.buttonText,),
                     ],
                   ),
                   onPressed: () {
@@ -639,9 +639,6 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                         }
                     );
                   }
-              ),
-              CupertinoActivityIndicator(
-                color: _isLoading ? Color(0xFF000000) : Color(0xFFFFFFFF),
               ),
               SizedBox(
                 height: 32,

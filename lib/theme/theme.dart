@@ -5,7 +5,7 @@ import 'package:flutter/cupertino.dart';
 class DepassTheme {
   DepassTheme._();
   
-  static CupertinoThemeData themeData = CupertinoThemeData(
+  static CupertinoThemeData get lightTheme => CupertinoThemeData(
     scaffoldBackgroundColor: DepassConstants.background,
     primaryColor: DepassConstants.primary,
     barBackgroundColor: DepassConstants.barBackground,
@@ -13,20 +13,14 @@ class DepassTheme {
     brightness: Brightness.light,
   );
 
-  // Dark theme
-  static CupertinoThemeData get darkTheme => const CupertinoThemeData(
+  static CupertinoThemeData get darkTheme => CupertinoThemeData(
+    scaffoldBackgroundColor: DepassConstants.background,
+    primaryColor: DepassConstants.primary,
+    barBackgroundColor: DepassConstants.barBackground,
+    textTheme: DepassTextTheme.regular,
     brightness: Brightness.dark,
-    primaryColor: CupertinoColors.systemBlue,
-    scaffoldBackgroundColor: CupertinoColors.black,
-    barBackgroundColor: CupertinoColors.systemGrey6,
-    textTheme: CupertinoTextThemeData(
-      primaryColor: CupertinoColors.white,
-      textStyle: TextStyle(
-        fontFamily: 'Inter',
-        fontSize: 16,
-        fontWeight: FontWeight.normal,
-        color: CupertinoColors.white,
-      ),
-    ),
   );
+
+  // Get current theme based on the global state
+  static CupertinoThemeData get currentTheme => darkTheme; // Always return darkTheme as it will have the right colors based on the global state
 }

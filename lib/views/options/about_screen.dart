@@ -1,5 +1,6 @@
 import 'package:depass/utils/constants.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -16,7 +17,11 @@ class AboutScreen extends StatelessWidget {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            Image.asset('assets/images/depass.png',height: 200),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30.0),
+              child: SvgPicture.asset('assets/images/depass-full.svg',width: 100, height: 180, 
+              colorFilter: ColorFilter.mode(DepassConstants.text, BlendMode.srcIn)),
+            ),
             SizedBox(height: 20),
             Text('Depass for Android', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
@@ -36,7 +41,7 @@ class AboutScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset('assets/images/github.png', height: 20),
+                    SvgPicture.asset('assets/images/github.svg', height: 20, colorFilter: ColorFilter.mode(DepassConstants.text, BlendMode.srcIn)),
                     SizedBox(width: 8),
                     CupertinoButton(
                       padding: EdgeInsets.all(0),

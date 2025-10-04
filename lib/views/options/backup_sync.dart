@@ -170,13 +170,14 @@ class _BackupSyncScreenState extends State<BackupSyncScreen> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey6,
+                color: DepassConstants.fadedBackground,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 seedPhrase,
                 style: TextStyle(
                   fontFamily: 'monospace',
+                  color: DepassConstants.text,
                   fontSize: 14,
                 ),
               ),
@@ -196,6 +197,7 @@ class _BackupSyncScreenState extends State<BackupSyncScreen> {
             child: Text('I\'ve Saved It'),
             onPressed: () {
               Navigator.pop(context);
+              
               setState(() {}); // Refresh to show updated status
             },
           ),

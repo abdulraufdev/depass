@@ -310,6 +310,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                     context: context,
                     builder: (context) {
                       return CupertinoPageScaffold(
+                        backgroundColor: DepassConstants.fadedBackground,
                         navigationBar: CupertinoNavigationBar(
                           middle: Text('Options'),
                         ),
@@ -318,7 +319,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             SizedBox(
                               height: 1,
                               child: Container(
-                                color: DepassConstants.barBackground,
+                                color: DepassConstants.separator,
                               ),
                             ),
                             CupertinoButton(
@@ -338,7 +339,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             SizedBox(
                               height: 2,
                               child: Container(
-                                color: DepassConstants.barBackground,
+                                color: DepassConstants.separator,
                               ),
                             ),
                             CupertinoButton(
@@ -363,7 +364,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             SizedBox(
                               height: 2,
                               child: Container(
-                                color: DepassConstants.barBackground,
+                                color: DepassConstants.separator,
                               ),
                             ),
                             CupertinoButton(

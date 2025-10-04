@@ -15,10 +15,26 @@ class _ThemeScreenState extends State<ThemeScreen> {
   DepassThemeMode _selectedTheme = DepassThemeMode.system;
   
   @override
+  void initState() {
+    super.initState();
+    // Initialize the selected theme based on current theme provider state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+      setState(() {
+        _selectedTheme = themeProvider.isDarkMode ? DepassThemeMode.dark : DepassThemeMode.light;
+      });
+    });
+  }
+  
+  @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(transitionBetweenRoutes: false),
+      backgroundColor: DepassConstants.background,
+      navigationBar: CupertinoNavigationBar(
+        transitionBetweenRoutes: false,
+        backgroundColor: DepassConstants.barBackground,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
@@ -30,16 +46,32 @@ class _ThemeScreenState extends State<ThemeScreen> {
               width: double.infinity,
               child: CupertinoSegmentedControl<DepassThemeMode>(
                 borderColor: DepassConstants.separator,
-              children: const <DepassThemeMode, Widget>{
-                DepassThemeMode.light: Text('Light'),
-                DepassThemeMode.dark: Text('Dark'),
-                DepassThemeMode.system: Text('System'),
+                selectedColor: DepassConstants.primary,
+                unselectedColor: DepassConstants.fadedBackground,
+              children: <DepassThemeMode, Widget>{
+                DepassThemeMode.light: Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: Text('Light'),
+                ),
+                DepassThemeMode.dark: Padding(
+                  padding: EdgeInsets.all(12.0), 
+                  child: Text('Dark'),
+                ),
+                DepassThemeMode.system: Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: Text('System'),
+                ),
               },
               groupValue: _selectedTheme,
               onValueChanged: (DepassThemeMode value) {
                 setState(() {
                   _selectedTheme = value;
-                  themeProvider.setTheme(value == DepassThemeMode.dark);
+                  if (value == DepassThemeMode.dark) {
+                    themeProvider.setTheme(true);
+                  } else if (value == DepassThemeMode.light) {
+                    themeProvider.setTheme(false);
+                  }
+                  // For system mode, you might want to implement system theme detection
                 });
               },
             ),

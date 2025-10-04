@@ -30,7 +30,7 @@ class MainApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: themeProvider.isDarkMode 
               ? DepassTheme.darkTheme 
-              : DepassTheme.themeData,
+              : DepassTheme.lightTheme,
           title: 'Depass',
           home: AuthScreen(),
         );

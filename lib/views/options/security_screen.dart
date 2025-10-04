@@ -86,7 +86,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   trailing: CupertinoSwitch(value: bioEnabled, onChanged: (value) {
                     _updateBiometricSetting(value);
                   },
-                  activeTrackColor: DepassConstants.toast,
+                  activeTrackColor: Color(0xFF333333),
                   ),
                   padding: EdgeInsetsGeometry.symmetric(vertical: 20),
                 )

@@ -42,6 +42,6 @@ flutter:
       fonts:
         - asset: assets/fonts/InterVariable.ttf
   assets:
-    - assets/images/depass.png
-    - assets/images/github.png
+    - assets/images/depass-full.svg
+    - assets/images/github.svg
     - assets/images/depass.svg

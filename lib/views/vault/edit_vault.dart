@@ -2,6 +2,7 @@ import 'package:depass/models/vault.dart';
 import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/services/database_service.dart';
 import 'package:depass/theme/text_theme.dart';
+import 'package:depass/utils/constants.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -180,7 +181,7 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
             CupertinoButton.filled(
               minimumSize: Size(double.infinity, 44),
               borderRadius: BorderRadius.circular(8),
-              child: _isLoading ? CupertinoActivityIndicator() : Text('Save'),
+              child: _isLoading ? CupertinoActivityIndicator() : Text('Save', style: TextStyle(color: DepassConstants.buttonText)),
               onPressed: () {
                 // Save the edited vault
                 _saveChanges();

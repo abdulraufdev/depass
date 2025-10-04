@@ -114,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         context: context,
                         builder: (context) {
                               return SizedBox(
-                                height: 200.0,
+                                height: 400.0,
                                 child: CupertinoPicker(
                                   scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
                                   backgroundColor: DepassConstants.background,

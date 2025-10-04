@@ -322,7 +322,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 'assets/images/depass.svg',
                 height:120,
                 colorFilter: ColorFilter.mode(
-                  Theme.of(context).primaryColor,
+                  DepassConstants.text,
                   BlendMode.srcIn,
                 ),
               ),
