@@ -30,10 +30,10 @@ class _ThemeScreenState extends State<ThemeScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return CupertinoPageScaffold(
-      backgroundColor: DepassConstants.background,
+      backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
-        backgroundColor: DepassConstants.barBackground,
+        backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkBarBackground : DepassConstants.lightBarBackground,
       ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -45,9 +45,9 @@ class _ThemeScreenState extends State<ThemeScreen> {
             SizedBox(
               width: double.infinity,
               child: CupertinoSegmentedControl<DepassThemeMode>(
-                borderColor: DepassConstants.separator,
-                selectedColor: DepassConstants.primary,
-                unselectedColor: DepassConstants.fadedBackground,
+                borderColor: DepassConstants.isDarkMode ?  DepassConstants.darkSeparator : DepassConstants.lightSeparator,
+                selectedColor: DepassConstants.isDarkMode ? DepassConstants.darkPrimary : DepassConstants.lightPrimary,
+                unselectedColor: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
               children: <DepassThemeMode, Widget>{
                 DepassThemeMode.light: Padding(
                   padding: EdgeInsets.all(12.0),

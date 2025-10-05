@@ -140,7 +140,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
               scrollController: FixedExtentScrollController(
                 initialItem: _selectedIndex,
               ),
-              backgroundColor: DepassConstants.background,
+              backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
               itemExtent: 42.0,
               onSelectedItemChanged: (int index) {
                 tempSelectedIndex = index;
@@ -151,7 +151,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                       child: Text(
                         vault.VaultTitle,
                         style: TextStyle(
-                          color: DepassConstants.text,
+                          color: DepassConstants.isDarkMode ? DepassConstants.darkText : DepassConstants.lightText,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -310,7 +310,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                     context: context,
                     builder: (context) {
                       return CupertinoPageScaffold(
-                        backgroundColor: DepassConstants.fadedBackground,
+                        backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
                         navigationBar: CupertinoNavigationBar(
                           middle: Text('Options'),
                         ),
@@ -319,7 +319,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             SizedBox(
                               height: 1,
                               child: Container(
-                                color: DepassConstants.separator,
+                                color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
                               ),
                             ),
                             CupertinoButton(
@@ -339,7 +339,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             SizedBox(
                               height: 2,
                               child: Container(
-                                color: DepassConstants.separator,
+                                color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
                               ),
                             ),
                             CupertinoButton(
@@ -364,7 +364,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             SizedBox(
                               height: 2,
                               child: Container(
-                                color: DepassConstants.separator,
+                                color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
                               ),
                             ),
                             CupertinoButton(
@@ -459,7 +459,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                                 Text(DepassConstants.noteTypes[index]),
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: DepassConstants.separator,
+                                    color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   clipBehavior: Clip.antiAlias,
@@ -474,7 +474,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                                             vertical: 10,
                                           ),
                                           backgroundColor:
-                                              DepassConstants.fadedBackground,
+                                              DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
                                           title: _customTitle(note),
                                           trailing: CupertinoButton(
                                             child: Icon(LucideIcons.copy),

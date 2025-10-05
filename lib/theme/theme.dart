@@ -6,21 +6,21 @@ class DepassTheme {
   DepassTheme._();
   
   static CupertinoThemeData get lightTheme => CupertinoThemeData(
-    scaffoldBackgroundColor: DepassConstants.background,
-    primaryColor: DepassConstants.primary,
-    barBackgroundColor: DepassConstants.barBackground,
+    scaffoldBackgroundColor: DepassConstants.lightBackground,
+    primaryColor: DepassConstants.lightPrimary,
+    barBackgroundColor: DepassConstants.lightBarBackground,
     textTheme: DepassTextTheme.regular,
     brightness: Brightness.light,
   );
 
   static CupertinoThemeData get darkTheme => CupertinoThemeData(
-    scaffoldBackgroundColor: DepassConstants.background,
-    primaryColor: DepassConstants.primary,
-    barBackgroundColor: DepassConstants.barBackground,
+    scaffoldBackgroundColor: DepassConstants.darkBackground,
+    primaryColor: DepassConstants.darkPrimary,
+    barBackgroundColor: DepassConstants.darkBarBackground,
     textTheme: DepassTextTheme.regular,
     brightness: Brightness.dark,
   );
 
   // Get current theme based on the global state
-  static CupertinoThemeData get currentTheme => darkTheme; // Always return darkTheme as it will have the right colors based on the global state
+  static CupertinoThemeData get currentTheme => darkTheme;
 }

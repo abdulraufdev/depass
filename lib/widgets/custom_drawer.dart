@@ -27,7 +27,7 @@ class CustomPopup extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(16, 20, 0, 0),
             width: 300,
             height: double.infinity,
-            color: DepassConstants.background,
+            color: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.end,

@@ -13,7 +13,7 @@ class CustomListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoListTile(
             padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            backgroundColor: DepassConstants.fadedBackground,
+            backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
             subtitle: subtitle != null ? Text(subtitle!) : null,
             title: Text(title, style: DepassTextTheme.paragraph),
             onTap: onTap ?? (){

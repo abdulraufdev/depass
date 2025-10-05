@@ -64,7 +64,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
             SizedBox(
               height: 2,
               child: Container(
-                color: DepassConstants.barBackground,
+                color: DepassConstants.isDarkMode ? DepassConstants.darkBarBackground : DepassConstants.lightBarBackground,
               ),
             ),
             FutureBuilder<bool>(
@@ -86,7 +86,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   trailing: CupertinoSwitch(value: bioEnabled, onChanged: (value) {
                     _updateBiometricSetting(value);
                   },
-                  activeTrackColor: Color(0xFF333333),
+                  activeTrackColor: DepassConstants.isDarkMode ? DepassConstants.darkDropdownButton : DepassConstants.lightPrimary,
                   ),
                   padding: EdgeInsetsGeometry.symmetric(vertical: 20),
                 )

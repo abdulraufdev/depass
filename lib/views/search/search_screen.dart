@@ -61,7 +61,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             Container(
       decoration: BoxDecoration(
-        color: DepassConstants.separator,
+        color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
         borderRadius: BorderRadius.circular(8),
       ),
       clipBehavior: Clip.antiAlias,

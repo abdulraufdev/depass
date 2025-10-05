@@ -107,8 +107,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   
                   return CupertinoButton.filled(
                     minimumSize: const Size(double.infinity, 64),
-                    foregroundColor: DepassConstants.text,
-                    color: DepassConstants.dropdownButton,
+                    foregroundColor: DepassConstants.isDarkMode ? DepassConstants.darkText : DepassConstants.lightText,
+                    color: DepassConstants.isDarkMode ? DepassConstants.darkDropdownButton : DepassConstants.lightDropdownButton,
                     onPressed: () {
                       showCupertinoModalPopup(
                         context: context,
@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 height: 400.0,
                                 child: CupertinoPicker(
                                   scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
-                                  backgroundColor: DepassConstants.background,
+                                  backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
                                   itemExtent: 42.0,
                                   
                                   onSelectedItemChanged: (int index) {

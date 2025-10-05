@@ -181,7 +181,7 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
             CupertinoButton.filled(
               minimumSize: Size(double.infinity, 44),
               borderRadius: BorderRadius.circular(8),
-              child: _isLoading ? CupertinoActivityIndicator() : Text('Save', style: TextStyle(color: DepassConstants.buttonText)),
+              child: _isLoading ? CupertinoActivityIndicator() : Text('Save', style: TextStyle(color: DepassConstants.isDarkMode ? DepassConstants.darkButtonText : DepassConstants.lightButtonText),),
               onPressed: () {
                 // Save the edited vault
                 _saveChanges();

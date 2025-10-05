@@ -385,7 +385,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               spacing: 2,
                               children: [
-                                Text(vaults.isNotEmpty ? vaults[_selectedIndex].VaultTitle : "No Vaults", style: DepassTextTheme.button), 
+                                Text(vaults.isNotEmpty ? vaults[_selectedIndex].VaultTitle : "No Vaults", style: DepassTextTheme.label), 
                                 Icon(LucideIcons.chevronDown)
                               ],
                             ),
@@ -400,7 +400,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                                   height: 200.0,
                                   child: CupertinoPicker(
                                     scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
-                                    backgroundColor: DepassConstants.background,
+                                    backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
                                     itemExtent: 42.0,
                                     onSelectedItemChanged: (int index) {
                                       setState(() {
@@ -484,7 +484,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                             fontSize: 16
                           ),),
                           SizedBox(width: 4),
-                          Icon(LucideIcons.plus),
+                          Icon(LucideIcons.plus, color: DepassConstants.isDarkMode ? DepassConstants.darkButtonText : DepassConstants.lightButtonText,),
                         ],
                       ), 
                       onPressed: () {

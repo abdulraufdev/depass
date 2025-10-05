@@ -381,7 +381,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                         decoration: BoxDecoration(
                           border: hasError 
                             ? Border.all(color: CupertinoColors.systemRed, width: 1)
-                            : Border.all(color: DepassConstants.fadedBackground),
+                            : Border.all(color: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         onChanged: (_) {
@@ -506,7 +506,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                                     ? _selectedIndex 
                                     : 0
                                 ),
-                                backgroundColor: DepassConstants.background,
+                                backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
                                 itemExtent: 42.0,
                                 onSelectedItemChanged: (int index) {
                                   setState(() {
@@ -541,7 +541,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                     decoration: BoxDecoration(
                       border: _validationErrors.containsKey('title') 
                         ? Border.all(color: CupertinoColors.systemRed, width: 1)
-                        : Border.all(color: DepassConstants.fadedBackground),
+                        : Border.all(color: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     onChanged: (_) {
@@ -590,7 +590,7 @@ class _EditPasswordScreenState extends State<EditPasswordScreen> {
                             fontSize: 16
                           )),
                       SizedBox(width: 4),
-                      Icon(LucideIcons.plus, color: DepassConstants.buttonText,),
+                      Icon(LucideIcons.plus, color: DepassConstants.isDarkMode ? DepassConstants.darkButtonText : DepassConstants.lightButtonText,),
                     ],
                   ),
                   onPressed: () {

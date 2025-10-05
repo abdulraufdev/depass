@@ -29,7 +29,7 @@ class _GeneratePasswordScreenState extends State<GeneratePasswordScreen> {
             Text('Generate a secure password', style: DepassTextTheme.heading1,),
             Container(
               decoration: BoxDecoration(
-                color: DepassConstants.fadedBackground,
+                color: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
                 borderRadius: BorderRadius.circular(8),
               ),
               padding: EdgeInsets.only(left: 16),
@@ -85,7 +85,7 @@ class _GeneratePasswordScreenState extends State<GeneratePasswordScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12.0),
                 decoration: BoxDecoration(
-                  border: Border.all(color: DepassConstants.separator),
+                  border: Border.all(color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text('Regenerate Password', textAlign: TextAlign.center),

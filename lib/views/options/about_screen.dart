@@ -20,7 +20,7 @@ class AboutScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30.0),
               child: SvgPicture.asset('assets/images/depass-full.svg',width: 100, height: 180, 
-              colorFilter: ColorFilter.mode(DepassConstants.text, BlendMode.srcIn)),
+              colorFilter: ColorFilter.mode(DepassConstants.isDarkMode ? DepassConstants.darkText : DepassConstants.lightText, BlendMode.srcIn)),
             ),
             SizedBox(height: 20),
             Text('Depass for Android', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
@@ -30,18 +30,18 @@ class AboutScreen extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: DepassConstants.fadedBackground,
+                  color: DepassConstants.isDarkMode? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
                   width: 1,
                 ),
                 borderRadius: BorderRadius.circular(8),
-                color: DepassConstants.barBackground,
+                color: DepassConstants.isDarkMode ? DepassConstants.darkBarBackground : DepassConstants.lightBarBackground,
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SvgPicture.asset('assets/images/github.svg', height: 20, colorFilter: ColorFilter.mode(DepassConstants.text, BlendMode.srcIn)),
+                    SvgPicture.asset('assets/images/github.svg', height: 20, colorFilter: ColorFilter.mode(DepassConstants.isDarkMode ? DepassConstants.darkText : DepassConstants.lightText, BlendMode.srcIn)),
                     SizedBox(width: 8),
                     CupertinoButton(
                       padding: EdgeInsets.all(0),

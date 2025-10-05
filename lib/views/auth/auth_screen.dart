@@ -322,7 +322,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 'assets/images/depass.svg',
                 height:120,
                 colorFilter: ColorFilter.mode(
-                  DepassConstants.text,
+                  DepassConstants.isDarkMode ? DepassConstants.darkText : DepassConstants.lightText,
                   BlendMode.srcIn,
                 ),
               ),
@@ -428,10 +428,10 @@ class _AuthScreenState extends State<AuthScreen> {
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: DepassConstants.separator),
-                  ) ,
+                    border: Border.all(color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator),
+                  ),
                   child: CupertinoButton.tinted(
-                    color: DepassConstants.background,
+                    color: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
                     onPressed: _isLoading ? null : _authenticateWithBiometrics,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Row(

@@ -1,4 +1,5 @@
 import 'package:depass/utils/constants.dart';
+import 'package:depass/views/encryption/encryption.dart';
 import 'package:depass/views/home/home_screen.dart';
 import 'package:depass/views/password/create_password.dart';
 import 'package:depass/views/search/search_screen.dart';
@@ -13,7 +14,7 @@ class App extends StatelessWidget {
     return CupertinoTabScaffold(
       tabBar: CupertinoTabBar(
         height: 56,
-        backgroundColor: DepassConstants.background,
+        backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
         border: Border.all(color: CupertinoColors.transparent),
         onTap: (value){
           if(value == 2){
@@ -44,7 +45,7 @@ class App extends StatelessWidget {
           index: index,
           children: const [
             HomeScreen(),
-            Center(child: Text('Encryption Tools')),
+            EncryptionScreen(),
             Center(child: Text('Create')),
             SearchScreen(),
           ],

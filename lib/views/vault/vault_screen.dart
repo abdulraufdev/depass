@@ -59,7 +59,7 @@ class _VaultScreenState extends State<VaultScreen> {
                 ),
                 Container(
                   decoration: BoxDecoration(
-                    color: DepassConstants.separator,
+                    color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   clipBehavior: Clip.antiAlias,

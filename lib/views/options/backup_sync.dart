@@ -170,14 +170,14 @@ class _BackupSyncScreenState extends State<BackupSyncScreen> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: DepassConstants.fadedBackground,
+                color: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 seedPhrase,
                 style: TextStyle(
                   fontFamily: 'monospace',
-                  color: DepassConstants.text,
+                  color: DepassConstants.isDarkMode ? DepassConstants.darkText : DepassConstants.lightText,
                   fontSize: 14,
                 ),
               ),
@@ -467,7 +467,7 @@ class _BackupSyncScreenState extends State<BackupSyncScreen> {
             SizedBox(
               height: 2,
               child: Container(
-                color: DepassConstants.barBackground,
+                color: DepassConstants.isDarkMode ? DepassConstants.darkBarBackground : DepassConstants.lightBarBackground,
               ),
             ),
             CupertinoListTile(
