@@ -7,13 +7,11 @@ environment:
   sdk: ^3.9.0
 
 dependencies:
-  aes_crypt_null_safe: ^3.1.1
   crypto: ^3.0.6
   cupertino_icons: ^1.0.8
   encrypt: ^5.0.3
   flutter:
     sdk: flutter
-  flutter_dotenv: ^6.0.0
   file_picker: ^10.3.3
   flutter_secure_storage: ^9.2.4
   flutter_svg: ^2.2.1
@@ -27,13 +25,19 @@ dependencies:
   random_string: ^2.3.1
   sqflite_sqlcipher: ^3.4.0
   bip39: ^1.0.6
-  device_info_plus: ^11.2.0
+  device_info_plus: ^12.1.0
   url_launcher: ^6.3.2
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
 
 flutter:
   uses-material-design: true

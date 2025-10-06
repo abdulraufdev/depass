@@ -154,9 +154,9 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<bool> _showBiometricSetupDialog() async {
-    final result = await showDialog<bool>(
+    final result = await showCupertinoDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => CupertinoAlertDialog(
         title: const Text('Enable Device Authentication'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -183,11 +183,11 @@ class _AuthScreenState extends State<AuthScreen> {
           ],
         ),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Skip'),
           ),
-          ElevatedButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Enable'),
           ),

@@ -4,6 +4,7 @@ import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/theme/theme.dart';
 import 'package:depass/views/auth/auth_screen.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -33,6 +34,11 @@ class MainApp extends StatelessWidget {
               : DepassTheme.lightTheme,
           title: 'Depass',
           home: AuthScreen(),
+          localizationsDelegates: [
+        DefaultMaterialLocalizations.delegate,
+        DefaultCupertinoLocalizations.delegate,
+        DefaultWidgetsLocalizations.delegate,
+      ],
         );
       },
     );
