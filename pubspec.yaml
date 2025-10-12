@@ -1,0 +1,53 @@
+name: depass
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  crypto: ^3.0.6
+  cupertino_icons: ^1.0.8
+  encrypt: ^5.0.3
+  flutter:
+    sdk: flutter
+  file_picker: ^10.3.3
+  flutter_mailer: ^3.0.1
+  flutter_secure_storage: ^9.2.4
+  flutter_svg: ^2.2.1
+  flutter_webrtc: ^1.2.0
+  local_auth: ^2.3.0
+  lucide_icons_flutter: ^3.0.9
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  provider: ^6.1.5+1
+  shared_preferences: ^2.5.3
+  random_string: ^2.3.1
+  sqflite_sqlcipher: ^3.4.0
+  bip39: ^1.0.6
+  device_info_plus: ^12.1.0
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_launcher_icons: ^0.14.4
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/InterVariable.ttf
+  assets:
+    - assets/images/depass-full.svg
+    - assets/images/github.svg
+    - assets/images/depass.svg
