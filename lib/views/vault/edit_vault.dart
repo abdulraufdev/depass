@@ -1,8 +1,11 @@
+import 'dart:ui';
+
 import 'package:depass/models/vault.dart';
 import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/services/database_service.dart';
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
+import 'package:depass/views/vault/vault_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +23,8 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
   final DBService _databaseService = DBService.instance;
   late final Vault _vault;
   TextEditingController _controller = TextEditingController();
+  String _vaultIcon = 'vault';
+  String _vaultColor = 'deepTeal';
   bool _isLoading = false;
 
   @override
@@ -36,6 +41,8 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
       setState(() {
         _vault = vault!;
         _controller = TextEditingController(text: _vault.VaultTitle);
+        _vaultIcon = _vault.VaultIcon;
+        _vaultColor = _vault.VaultColor;
         _isLoading = false;
       });
     } catch (e) {
@@ -54,9 +61,11 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
     try {
       // Use VaultProvider to update the title (this will refresh all vault UI automatically)
       final vaultProvider = Provider.of<VaultProvider>(context, listen: false);
-      await vaultProvider.updateVaultTitle(
+      await vaultProvider.updateVaultInfo(
         int.parse(widget.id),
         _controller.text.trim(),
+        _vaultIcon,
+        _vaultColor,
       );
 
       setState(() {
@@ -90,16 +99,8 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
             ),
             actions: [
               CupertinoDialogAction(
-                child: Text('Cancel'),
+                child: Text('Ok'),
                 onPressed: () => Navigator.pop(context),
-              ),
-              CupertinoDialogAction(
-                isDestructiveAction: true,
-                child: Text('Delete'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  _deleteVault();
-                },
               ),
             ],
           ),
@@ -111,7 +112,9 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
         await vaultProvider.loadAllVaults();
 
         if (mounted) {
-          Navigator.pop(context);
+          Navigator.of(context).pushReplacement(
+            CupertinoPageRoute(builder: (context) => VaultScreen()),
+          );
         }
       }
     } catch (e) {
@@ -170,6 +173,142 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: 8,
               children: [
+                Text('Avatar', style: TextStyle(fontWeight: FontWeight.bold)),
+                Row(
+                  spacing: 18,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      child: Container(
+                        width: 102,
+                        height: 102,
+                        clipBehavior: Clip.none,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(100),
+                          color:
+                              DepassConstants.profileColors[_vaultColor] ??
+                              DepassConstants.deepTeal,
+                        ),
+                        child: Center(
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Icon(
+                                DepassConstants.profileIcons[_vaultIcon] ??
+                                    LucideIcons.vault,
+                                size: 48,
+                                color: CupertinoColors.white,
+                              ),
+                              Positioned(
+                                bottom: -20,
+                                right: -20,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(100),
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(
+                                      sigmaX: 10,
+                                      sigmaY: 10,
+                                    ),
+                                    child: Container(
+                                      width: 24,
+                                      height: 24,
+                                      clipBehavior: Clip.none,
+                                      decoration: BoxDecoration(
+                                        color: DepassConstants.lightBackground
+                                            .withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(
+                                          100,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        LucideIcons.squarePen500,
+                                        size: 12,
+                                        color: DepassConstants.darkText,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      onPressed: () {
+                        showCupertinoSheet(
+                          context: context,
+                          builder: (context) => CupertinoPageScaffold(
+                            navigationBar: CupertinoNavigationBar(
+                              middle: Text('Select Icon'),
+                            ),
+                            child: Wrap(
+                              children: DepassConstants.profileIcons.values
+                                  .toList()
+                                  .map(
+                                    (iconData) => CupertinoButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          _vaultIcon = DepassConstants
+                                              .profileIcons
+                                              .entries
+                                              .firstWhere(
+                                                (entry) =>
+                                                    entry.value == iconData,
+                                              )
+                                              .key;
+                                        });
+                                      },
+                                      child: Icon(iconData, size: 28),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    Expanded(
+                      child: SizedBox(
+                        height: 156,
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          alignment: WrapAlignment.start,
+                          runAlignment: WrapAlignment.center,
+                          children: DepassConstants.profileColors.values.map((
+                            color,
+                          ) {
+                            return CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size(0, 0),
+                              onPressed: () {
+                                setState(() {
+                                  _vaultColor = DepassConstants
+                                      .profileColors
+                                      .entries
+                                      .firstWhere(
+                                        (entry) => entry.value == color,
+                                      )
+                                      .key;
+                                });
+                              },
+                              child: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  borderRadius: BorderRadius.circular(100),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
                 Text('Title', style: TextStyle(fontWeight: FontWeight.bold)),
                 CupertinoTextField(
                   controller: _controller,
@@ -181,11 +320,21 @@ class _EditVaultScreenState extends State<EditVaultScreen> {
             CupertinoButton.filled(
               minimumSize: Size(double.infinity, 44),
               borderRadius: BorderRadius.circular(8),
-              child: _isLoading ? CupertinoActivityIndicator() : Text('Save', style: TextStyle(color: DepassConstants.isDarkMode ? DepassConstants.darkButtonText : DepassConstants.lightButtonText),),
+              child: _isLoading
+                  ? CupertinoActivityIndicator()
+                  : Text(
+                      'Save',
+                      style: TextStyle(
+                        color: DepassConstants.isDarkMode
+                            ? DepassConstants.darkButtonText
+                            : DepassConstants.lightButtonText,
+                      ),
+                    ),
               onPressed: () {
                 // Save the edited vault
                 _saveChanges();
-                Navigator.pop(context);
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
               },
             ),
           ],

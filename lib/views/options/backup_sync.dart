@@ -1,11 +1,12 @@
-import 'package:depass/providers/password_provider.dart';
-import 'package:depass/services/sync_chain_service.dart';
 import 'package:depass/models/sync_chain.dart';
+import 'package:depass/providers/password_provider.dart';
+import 'package:depass/providers/sync_chain_provider.dart';
+import 'package:depass/services/notification_service.dart';
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
+import 'package:depass/views/sync_chain/sync_chain_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 
 class BackupSyncScreen extends StatefulWidget {
@@ -16,458 +17,211 @@ class BackupSyncScreen extends StatefulWidget {
 }
 
 class _BackupSyncScreenState extends State<BackupSyncScreen> {
-  final SyncChainService _syncChainService = SyncChainService();
-
-  @override
-  void initState() {
-    super.initState();
-    _syncChainService.initialize();
-  }
-
   void _exportToCSV(BuildContext context) async {
     try {
-      final passwordProvider = Provider.of<PasswordProvider>(context, listen: false);
-      final filePath = await passwordProvider.exportAllPasswordsToCSV();
-      
-      if (context.mounted) {
-        final fileName = basename(filePath);
-        showCupertinoDialog(context: context, builder: (context) {
-          return CupertinoAlertDialog(
-            title: Text('Export Successful'),
-            content: Text('Passwords exported to $fileName'),
-            actions: [
-              CupertinoDialogAction(
-                child: Text('OK'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        });
-      }
-    } catch (e) {
-      if (context.mounted) {
-        showCupertinoDialog(context: context, builder: (context) {
-          return CupertinoAlertDialog(
-            title: Text('Export Failed'),
-            content: Text('Passwords could not be exported: ${e.toString()}'),
-            actions: [
-              CupertinoDialogAction(
-                child: Text('OK'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        });
-      }
-    }
-  }
-
-  void _navigateToSyncChain(BuildContext context) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (BuildContext context) {
-        return CupertinoActionSheet(
-          title: Text('Sync Chain'),
-          message: Text('Choose an option for sync chain management'),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                _createNewSyncChain(context);
-              },
-              child: Text('Create New Sync Chain'),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                _joinExistingSyncChain(context);
-              },
-              child: Text('Join Existing Sync Chain'),
-            ),
-            if (_syncChainService.currentSyncChain != null)
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _viewCurrentSyncChain(context);
-                },
-                child: Text('View Current Sync Chain'),
-              ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Cancel'),
-          ),
-        );
-      },
-    );
-  }
-
-  void _createNewSyncChain(BuildContext context) async {
-    try {
-      showCupertinoDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => CupertinoAlertDialog(
-          title: Text('Creating Sync Chain'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(height: 10),
-              CupertinoActivityIndicator(),
-              SizedBox(height: 10),
-              Text('Generating secure sync chain...'),
-            ],
-          ),
-        ),
+      final passwordProvider = Provider.of<PasswordProvider>(
+        context,
+        listen: false,
       );
+      final filePath = await passwordProvider.exportAllPasswordsToCSV();
 
-      final syncChain = await _syncChainService.createSyncChain();
-      
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-        _showSeedPhraseDialog(syncChain.seedPhrase, context);
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
+      if (context.mounted) {
+        NotiService.instance.showNotification(
+          id: 2,
+          title: 'Export Successful',
+          body: 'Passwords exported to CSV file!',
+        );
         showCupertinoDialog(
           context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: Text('Error'),
-            content: Text('Failed to create sync chain: ${e.toString()}'),
-            actions: [
-              CupertinoDialogAction(
-                child: Text('OK'),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
+          builder: (context) {
+            return CupertinoAlertDialog(
+              title: Text('Export Successful'),
+              content: Text('Passwords exported to CSV file.'),
+              actions: [
+                CupertinoDialogAction(
+                  child: Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) {
+            return CupertinoAlertDialog(
+              title: Text('Export Failed'),
+              content: Text('Passwords could not be exported: ${e.toString()}'),
+              actions: [
+                CupertinoDialogAction(
+                  child: Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
         );
       }
     }
   }
 
-  void _showSeedPhraseDialog(String seedPhrase, BuildContext context) {
-    showCupertinoDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text('Sync Chain Created'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Your sync chain has been created successfully!'),
-            SizedBox(height: 16),
-            Text('Seed Phrase:', style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                seedPhrase,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  color: DepassConstants.isDarkMode ? DepassConstants.darkText : DepassConstants.lightText,
-                  fontSize: 14,
+  void _exportToJSON(BuildContext context) async {
+    try {
+      final passwordProvider = Provider.of<PasswordProvider>(
+        context,
+        listen: false,
+      );
+      await passwordProvider.exportToJSON();
+
+      if (context.mounted) {
+        NotiService.instance.showNotification(
+          id: 4,
+          title: 'Export Successful',
+          body: 'Passwords exported to JSON file!',
+        );
+        showCupertinoDialog(
+          context: context,
+          builder: (context) {
+            return CupertinoAlertDialog(
+              title: Text('Export Successful'),
+              content: Text('Passwords exported to JSON file.'),
+              actions: [
+                CupertinoDialogAction(
+                  child: Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
                 ),
-              ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Save this seed phrase securely. You\'ll need it to connect other devices to this sync chain.',
-              style: TextStyle(
-                fontSize: 12,
-                color: CupertinoColors.systemGrey,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          CupertinoDialogAction(
-            child: Text('I\'ve Saved It'),
-            onPressed: () {
-              Navigator.pop(context);
-              
-              setState(() {}); // Refresh to show updated status
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _joinExistingSyncChain(BuildContext context) {
-    final TextEditingController seedController = TextEditingController();
-    
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text('Join Sync Chain'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(height: 16),
-            Text('Enter the 16-word seed phrase to join an existing sync chain:'),
-            SizedBox(height: 16),
-            CupertinoTextField(
-              controller: seedController,
-              placeholder: 'Enter seed phrase...',
-              maxLines: 3,
-              textInputAction: TextInputAction.done,
-            ),
-          ],
-        ),
-        actions: [
-          CupertinoDialogAction(
-            child: Text('Cancel'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          CupertinoDialogAction(
-            child: Text('Join'),
-            onPressed: () async {
-              final seedPhrase = seedController.text.trim();
-              if (seedPhrase.isEmpty) return;
-              
-              Navigator.pop(context);
-              
-              try {
-                showCupertinoDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => CupertinoAlertDialog(
-                    title: Text('Joining Sync Chain'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(height: 10),
-                        CupertinoActivityIndicator(),
-                        SizedBox(height: 10),
-                        Text('Connecting to sync chain...'),
-                      ],
-                    ),
-                  ),
-                );
-
-                await _syncChainService.joinSyncChain(seedPhrase);
-                
-                if (mounted) {
-                  Navigator.pop(context); // Close loading dialog
-                  showCupertinoDialog(
-                    context: context,
-                    builder: (context) => CupertinoAlertDialog(
-                      title: Text('Success'),
-                      content: Text('Successfully joined the sync chain! Waiting for verification from the owner.'),
-                      actions: [
-                        CupertinoDialogAction(
-                          child: Text('OK'),
-                          onPressed: () {
-                            Navigator.pop(context);
-                            setState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context); // Close loading dialog
-                  showCupertinoDialog(
-                    context: context,
-                    builder: (context) => CupertinoAlertDialog(
-                      title: Text('Error'),
-                      content: Text('Failed to join sync chain: ${e.toString()}'),
-                      actions: [
-                        CupertinoDialogAction(
-                          child: Text('OK'),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _viewCurrentSyncChain(BuildContext context) {
-    final syncChain = _syncChainService.currentSyncChain;
-    if (syncChain == null) return;
-
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text('Current Sync Chain'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Status: ${_getStatusText(syncChain.status)}'),
-            SizedBox(height: 8),
-            Text('Role: ${syncChain.isOwner ? "Owner" : "Member"}'),
-            SizedBox(height: 8),
-            Text('Connected Peers: ${_syncChainService.connectedPeers.length}'),
-            SizedBox(height: 8),
-            Text('Created: ${_formatDate(syncChain.createdAt)}'),
-          ],
-        ),
-        actions: [
-          CupertinoDialogAction(
-            child: Text('Disconnect'),
-            onPressed: () async {
-              Navigator.pop(context);
-              await _syncChainService.disconnectFromSyncChain();
-              setState(() {});
-            },
-          ),
-          CupertinoDialogAction(
-            child: Text('Leave Permanently'),
-            isDestructiveAction: true,
-            onPressed: () async {
-              Navigator.pop(context);
-              _confirmLeaveSyncChain(context);
-            },
-          ),
-          CupertinoDialogAction(
-            child: Text('Close'),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmLeaveSyncChain(BuildContext context) {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text('Leave Sync Chain'),
-        content: Text('Are you sure you want to leave this sync chain permanently? This action cannot be undone.'),
-        actions: [
-          CupertinoDialogAction(
-            child: Text('Cancel'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          CupertinoDialogAction(
-            child: Text('Leave'),
-            isDestructiveAction: true,
-            onPressed: () async {
-              Navigator.pop(context);
-              await _syncChainService.leaveSyncChain();
-              setState(() {});
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getStatusText(SyncChainStatus status) {
-    switch (status) {
-      case SyncChainStatus.connected:
-        return 'Connected';
-      case SyncChainStatus.connecting:
-        return 'Connecting...';
-      case SyncChainStatus.waiting:
-        return 'Waiting for peers';
-      case SyncChainStatus.creating:
-        return 'Creating...';
-      case SyncChainStatus.disconnected:
-        return 'Disconnected';
-      case SyncChainStatus.error:
-        return 'Error';
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  Widget syncChainSubtitle() {
-    final syncChain = _syncChainService.currentSyncChain;
-    if (syncChain == null) {
-      return Text('Not connected to any sync chain');
-    }
-    
-    switch (syncChain.status) {
-      case SyncChainStatus.connected:
-        return Text('Connected • ${_syncChainService.connectedPeers.length} peer(s)');
-      case SyncChainStatus.connecting:
-        return Text('Connecting...');
-      case SyncChainStatus.waiting:
-        return Text('Waiting for peers');
-      case SyncChainStatus.creating:
-        return Text('Creating sync chain...');
-      case SyncChainStatus.disconnected:
-        return Text('Disconnected');
-      case SyncChainStatus.error:
-        return Text('Connection error');
-    }
-  }
-
-  Color _getSyncChainStatusColor() {
-    final syncChain = _syncChainService.currentSyncChain;
-    if (syncChain == null) {
-      return CupertinoColors.systemGrey;
-    }
-    
-    switch (syncChain.status) {
-      case SyncChainStatus.connected:
-        return CupertinoColors.systemGreen;
-      case SyncChainStatus.connecting:
-      case SyncChainStatus.creating:
-        return CupertinoColors.systemBlue;
-      case SyncChainStatus.waiting:
-        return CupertinoColors.systemOrange;
-      case SyncChainStatus.disconnected:
-        return CupertinoColors.systemGrey;
-      case SyncChainStatus.error:
-        return CupertinoColors.systemRed;
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) {
+            return CupertinoAlertDialog(
+              title: Text('Export Failed'),
+              content: Text('Passwords could not be exported: ${e.toString()}'),
+              actions: [
+                CupertinoDialogAction(
+                  child: Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        transitionBetweenRoutes: false,
-      ),
+      navigationBar: CupertinoNavigationBar(transitionBetweenRoutes: false),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Backup & Sync', style: DepassTextTheme.heading1),
-            SizedBox(height: 12,),
-            CupertinoListTile(
-              title: Text('Sync Chain'),
-              subtitle: syncChainSubtitle(),
-              leading: Icon(
-                LucideIcons.link2,
-                color: _getSyncChainStatusColor(),
-              ),
-              trailing: Icon(LucideIcons.chevronRight),
-              padding: EdgeInsets.symmetric(vertical: 20),
-              onTap: () => _navigateToSyncChain(context),
+            SizedBox(height: 12),
+            // Sync Chain - Decentralized P2P Sync
+            Consumer<SyncChainProvider>(
+              builder: (context, syncChainProvider, child) {
+                final isActive = syncChainProvider.isChainActive;
+                final status = syncChainProvider.status;
+
+                String subtitle = 'Decentralized peer-to-peer sync';
+                Color statusColor = CupertinoColors.systemGrey;
+
+                if (isActive) {
+                  switch (status) {
+                    case SyncChainStatus.connected:
+                      subtitle =
+                          'Connected (${syncChainProvider.connectedDevices.length} devices)';
+                      statusColor = CupertinoColors.systemGreen;
+                      break;
+                    case SyncChainStatus.discovering:
+                    case SyncChainStatus.connecting:
+                      subtitle = 'Connecting...';
+                      statusColor = CupertinoColors.systemOrange;
+                      break;
+                    case SyncChainStatus.syncing:
+                      subtitle = 'Syncing...';
+                      statusColor = CupertinoColors.systemOrange;
+                      break;
+                    case SyncChainStatus.disconnected:
+                      subtitle = 'Chain active - Tap to start';
+                      statusColor = CupertinoColors.systemBlue;
+                      break;
+                    case SyncChainStatus.error:
+                      subtitle = 'Error - Tap to retry';
+                      statusColor = CupertinoColors.systemRed;
+                      break;
+                  }
+                }
+
+                return CupertinoListTile(
+                  title: Text('Sync Chain'),
+                  subtitle: Text(
+                    subtitle,
+                    style: TextStyle(color: statusColor, fontSize: 12),
+                  ),
+                  leading: Stack(
+                    children: [
+                      Icon(LucideIcons.link),
+                      if (isActive && status == SyncChainStatus.connected)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: CupertinoColors.systemGreen,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: DepassConstants.isDarkMode
+                                    ? CupertinoColors.black
+                                    : CupertinoColors.white,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  trailing: Icon(LucideIcons.chevronRight),
+                  padding: EdgeInsetsGeometry.symmetric(vertical: 20),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (context) => SyncChainScreen(),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
             SizedBox(
               height: 2,
               child: Container(
-                color: DepassConstants.isDarkMode ? DepassConstants.darkBarBackground : DepassConstants.lightBarBackground,
+                color: DepassConstants.isDarkMode
+                    ? DepassConstants.darkBarBackground
+                    : DepassConstants.lightBarBackground,
               ),
             ),
             CupertinoListTile(
@@ -475,25 +229,63 @@ class _BackupSyncScreenState extends State<BackupSyncScreen> {
               leading: Icon(LucideIcons.fileSpreadsheet),
               padding: EdgeInsets.symmetric(vertical: 20),
               onTap: () {
+                final parentContext = context;
                 showCupertinoDialog(
                   context: context,
-                  builder: (context) {
+                  builder: (dialogContext) {
                     return CupertinoAlertDialog(
                       title: Text('Security warning!'),
-                      content: Text('Storing unencrypted data may compromise your security. It is recommended to use Sync chain for backups. Do you want to proceed?'),
+                      content: Text(
+                        'Storing unencrypted data may compromise your security. It is recommended to use Sync chain for backups. Do you want to proceed?',
+                      ),
                       actions: [
                         CupertinoDialogAction(
                           isDestructiveAction: true,
                           onPressed: () {
-                            Navigator.of(context).pop();
-                            _exportToCSV(context);
+                            Navigator.of(dialogContext).pop();
+                            _exportToCSV(parentContext);
                           },
                           child: Text('Export'),
                         ),
                         CupertinoDialogAction(
                           child: Text('Cancel'),
                           onPressed: () {
-                            Navigator.of(context).pop();
+                            Navigator.of(dialogContext).pop();
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+            CupertinoListTile(
+              title: Text('Export data to JSON'),
+              leading: Icon(LucideIcons.fileJson),
+              padding: EdgeInsets.symmetric(vertical: 20),
+              onTap: () {
+                final parentContext = context;
+                showCupertinoDialog(
+                  context: context,
+                  builder: (dialogContext) {
+                    return CupertinoAlertDialog(
+                      title: Text('Security warning!'),
+                      content: Text(
+                        'Storing unencrypted data may compromise your security. It is recommended to use Sync chain for backups. Do you want to proceed?',
+                      ),
+                      actions: [
+                        CupertinoDialogAction(
+                          isDestructiveAction: true,
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            _exportToJSON(parentContext);
+                          },
+                          child: Text('Export'),
+                        ),
+                        CupertinoDialogAction(
+                          child: Text('Cancel'),
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
                           },
                         ),
                       ],

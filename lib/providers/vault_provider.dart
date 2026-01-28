@@ -5,10 +5,10 @@ import 'package:depass/models/vault.dart';
 
 class VaultProvider extends ChangeNotifier {
   final DBService _dbService = DBService.instance;
-  
+
   // Cache for all vaults
   List<Vault>? _allVaults;
-  
+
   // Loading state
   bool _isLoadingAllVaults = false;
 
@@ -31,7 +31,7 @@ class VaultProvider extends ChangeNotifier {
   Future<void> loadAllVaults() async {
     _isLoadingAllVaults = true;
     _safeNotifyListeners();
-    
+
     try {
       final vaults = await _dbService.getAllVaults();
       _allVaults = vaults;
@@ -44,24 +44,33 @@ class VaultProvider extends ChangeNotifier {
     }
   }
 
-  // Update vault title
-  Future<void> updateVaultTitle(int vaultId, String newTitle) async {
+  // Update vault info
+  Future<void> updateVaultInfo(
+    int vaultId,
+    String newTitle,
+    String vaultIcon,
+    String vaultColor,
+  ) async {
     try {
-      await _dbService.updateVault(vaultId, newTitle);
-      
+      await _dbService.updateVault(vaultId, newTitle, vaultIcon, vaultColor);
+
       // Update cached data
       if (_allVaults != null) {
-        final vaultIndex = _allVaults!.indexWhere((vault) => vault.VaultId == vaultId);
+        final vaultIndex = _allVaults!.indexWhere(
+          (vault) => vault.VaultId == vaultId,
+        );
         if (vaultIndex != -1) {
           _allVaults![vaultIndex] = Vault(
             VaultId: _allVaults![vaultIndex].VaultId,
             VaultTitle: newTitle,
+            VaultIcon: vaultIcon,
+            VaultColor: vaultColor,
             CreatedAt: _allVaults![vaultIndex].CreatedAt,
             UpdatedAt: DateTime.now().millisecondsSinceEpoch,
           );
         }
       }
-      
+
       _safeNotifyListeners();
     } catch (e) {
       print('Error updating vault title: $e');
@@ -70,10 +79,14 @@ class VaultProvider extends ChangeNotifier {
   }
 
   // Create new vault
-  Future<void> createVault(String title) async {
+  Future<void> createVault(
+    String title,
+    String vaultIcon,
+    String vaultColor,
+  ) async {
     try {
-      await _dbService.createVault(title);
-      
+      await _dbService.createVault(title, vaultIcon, vaultColor);
+
       // Refresh all vaults to include the new one
       await loadAllVaults();
     } catch (e) {
@@ -86,12 +99,12 @@ class VaultProvider extends ChangeNotifier {
   Future<void> deleteVault(int vaultId) async {
     try {
       await _dbService.deleteVault(vaultId);
-      
+
       // Remove from cache
       if (_allVaults != null) {
         _allVaults!.removeWhere((vault) => vault.VaultId == vaultId);
       }
-      
+
       _safeNotifyListeners();
     } catch (e) {
       print('Error deleting vault: $e');
@@ -102,14 +115,13 @@ class VaultProvider extends ChangeNotifier {
   // Get vault by ID
   Vault? getVaultById(int vaultId) {
     if (_allVaults == null) return null;
-    
+
     try {
       return _allVaults!.firstWhere((vault) => vault.VaultId == vaultId);
     } catch (e) {
       return null;
     }
   }
-
 
   // Clear all caches (useful for logout or major data changes)
   void clearAllCaches() {

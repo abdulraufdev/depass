@@ -13,9 +13,11 @@ class ChangePasswordScreen extends StatefulWidget {
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final AuthService _authService = AuthService();
-  final TextEditingController _currentPasswordController = TextEditingController();
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   // Focus nodes for tracking focus state
   final FocusNode _currentPasswordFocus = FocusNode();
@@ -27,7 +29,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
   bool _currentPasswordVerified = false;
-  
+
   // Focus state tracking
   bool _isCurrentPasswordFocused = false;
   bool _isNewPasswordFocused = false;
@@ -36,20 +38,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Add focus listeners
     _currentPasswordFocus.addListener(() {
       setState(() {
         _isCurrentPasswordFocused = _currentPasswordFocus.hasFocus;
       });
     });
-    
+
     _newPasswordFocus.addListener(() {
       setState(() {
         _isNewPasswordFocused = _newPasswordFocus.hasFocus;
       });
     });
-    
+
     _confirmPasswordFocus.addListener(() {
       setState(() {
         _isConfirmPasswordFocused = _confirmPasswordFocus.hasFocus;
@@ -62,12 +64,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
-    
+
     // Dispose focus nodes
     _currentPasswordFocus.dispose();
     _newPasswordFocus.dispose();
     _confirmPasswordFocus.dispose();
-    
+
     super.dispose();
   }
 
@@ -107,7 +109,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
 
     if (_newPasswordController.text.length < 6) {
-      _showErrorSnackBar(context, 'Password must be at least 6 characters long');
+      _showErrorSnackBar(
+        context,
+        'Password must be at least 6 characters long',
+      );
       return;
     }
 
@@ -117,7 +122,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
 
     if (_newPasswordController.text == _currentPasswordController.text) {
-      _showErrorSnackBar(context, 'New password must be different from current password');
+      _showErrorSnackBar(
+        context,
+        'New password must be different from current password',
+      );
       return;
     }
 
@@ -217,7 +225,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               Icon(
                 Icons.lock_reset,
                 size: 80,
-                color: DepassConstants.isDarkMode ? DepassConstants.darkPrimary : DepassConstants.lightPrimary,
+                color: DepassConstants.isDarkMode
+                    ? DepassConstants.darkPrimary
+                    : DepassConstants.lightPrimary,
               ),
               const SizedBox(height: 24),
 
@@ -237,9 +247,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 _currentPasswordVerified
                     ? 'Please enter your new password'
                     : 'Enter your current password to continue',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -252,8 +262,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   placeholder: 'Current Password',
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _isCurrentPasswordFocused 
-                          ? (DepassConstants.isDarkMode ? DepassConstants.darkPrimary : DepassConstants.lightPrimary)
+                      color: _isCurrentPasswordFocused
+                          ? (DepassConstants.isDarkMode
+                                ? DepassConstants.darkPrimary
+                                : DepassConstants.lightPrimary)
                           : CupertinoColors.systemGrey4,
                       width: 1.0,
                     ),
@@ -261,8 +273,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   suffix: IconButton(
                     icon: Icon(
-                      _obscureCurrentPassword 
-                          ? Icons.visibility 
+                      _obscureCurrentPassword
+                          ? Icons.visibility
                           : Icons.visibility_off,
                     ),
                     onPressed: () {
@@ -277,12 +289,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 const SizedBox(height: 24),
                 CupertinoButton(
                   onPressed: _isLoading ? null : _verifyCurrentPassword,
-                  color: DepassConstants.isDarkMode ? DepassConstants.darkPrimary : DepassConstants.lightPrimary,
+                  color: DepassConstants.isDarkMode
+                      ? DepassConstants.darkPrimary
+                      : DepassConstants.lightPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    'Verify Password',
-                    style: DepassTextTheme.button,
-                  ),
+                  child: Text('Verify Password', style: DepassTextTheme.button),
                 ),
               ],
 
@@ -294,17 +305,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   placeholder: 'New Password',
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _isNewPasswordFocused 
-                          ? (DepassConstants.isDarkMode ? DepassConstants.darkPrimary : DepassConstants.lightPrimary)
+                      color: _isNewPasswordFocused
+                          ? (DepassConstants.isDarkMode
+                                ? DepassConstants.darkPrimary
+                                : DepassConstants.lightPrimary)
                           : CupertinoColors.systemGrey4,
-                      width:  1.0,
+                      width: 1.0,
                     ),
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   suffix: IconButton(
                     icon: Icon(
-                      _obscureNewPassword 
-                          ? Icons.visibility 
+                      _obscureNewPassword
+                          ? Icons.visibility
                           : Icons.visibility_off,
                     ),
                     onPressed: () {
@@ -323,17 +336,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   placeholder: 'Confirm New Password',
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _isConfirmPasswordFocused 
-                          ? (DepassConstants.isDarkMode ? DepassConstants.darkPrimary : DepassConstants.lightPrimary)
+                      color: _isConfirmPasswordFocused
+                          ? (DepassConstants.isDarkMode
+                                ? DepassConstants.darkPrimary
+                                : DepassConstants.lightPrimary)
                           : CupertinoColors.systemGrey4,
-                      width:  1.0,
+                      width: 1.0,
                     ),
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   suffix: IconButton(
                     icon: Icon(
-                      _obscureConfirmPassword 
-                          ? Icons.visibility 
+                      _obscureConfirmPassword
+                          ? Icons.visibility
                           : Icons.visibility_off,
                     ),
                     onPressed: () {
@@ -345,33 +360,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   obscureText: _obscureConfirmPassword,
                   onSubmitted: (_) => _changePassword(),
                 ),
-                const SizedBox(height: 24),
-
-                CupertinoButton(
-                  onPressed: _isLoading ? null : _changePassword,
-                  color: DepassConstants.isDarkMode ? DepassConstants.darkPrimary : DepassConstants.lightPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          'Change Password',
-                          style: DepassTextTheme.button,
-                        ),
-                ),
-
                 const SizedBox(height: 32),
 
                 // Password Requirements
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: DepassConstants.isDarkMode ? const Color.fromARGB(255, 6, 18, 29) : Colors.blue[50]!,
+                    color: DepassConstants.isDarkMode
+                        ? const Color.fromARGB(255, 6, 18, 29)
+                        : Colors.blue[50]!,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: DepassConstants.isDarkMode ? DepassConstants.darkDropdownButton : Colors.blue[200]!),
+                    border: Border.all(
+                      color: DepassConstants.isDarkMode
+                          ? DepassConstants.darkDropdownButton
+                          : Colors.blue[200]!,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,11 +393,36 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text('• At least 6 characters long'),
-                      const Text('• Must be different from current password'),
-                      const Text('• Use a strong, unique password'),
+                      Text(
+                        '• At least 6 characters long',
+                        style: TextStyle(color: Colors.blue[700]),
+                      ),
+                      Text(
+                        '• Must be different from current password',
+                        style: TextStyle(color: Colors.blue[700]),
+                      ),
+                      Text(
+                        '• Use a strong, unique password',
+                        style: TextStyle(color: Colors.blue[700]),
+                      ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 24),
+
+                CupertinoButton(
+                  onPressed: _isLoading ? null : _changePassword,
+                  color: DepassConstants.isDarkMode
+                      ? DepassConstants.darkPrimary
+                      : DepassConstants.lightPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text('Change Password', style: DepassTextTheme.button),
                 ),
               ],
             ],

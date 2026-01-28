@@ -9,7 +9,7 @@ import '../../services/auth_service.dart';
 import '../app.dart';
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({Key? key}) : super(key: key);
+  const AuthScreen({super.key});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -122,12 +122,15 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     if (_passwordController.text.length < 6) {
-      _showErrorSnackBar(context,'Password must be at least 6 characters long');
+      _showErrorSnackBar(
+        context,
+        'Password must be at least 6 characters long',
+      );
       return;
     }
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      _showErrorSnackBar(context,'Passwords do not match');
+      _showErrorSnackBar(context, 'Passwords do not match');
       return;
     }
 
@@ -164,22 +167,6 @@ class _AuthScreenState extends State<AuthScreen> {
             const Text(
               'Would you like to enable device authentication (biometrics, PIN, pattern, or password) for faster access?',
             ),
-            const SizedBox(height: 16),
-            if (_availableBiometrics.isNotEmpty)
-              Wrap(
-                spacing: 8,
-                children: _availableBiometrics.map((type) {
-                  return Chip(
-                    label: Text(_getBiometricTypeName(type)),
-                    avatar: Icon(_getBiometricTypeIcon(type)),
-                  );
-                }).toList(),
-              ),
-            if (_availableBiometrics.isEmpty)
-              const Chip(
-                label: Text('Device Authentication'),
-                avatar: Icon(Icons.lock),
-              ),
           ],
         ),
         actions: [
@@ -200,13 +187,13 @@ class _AuthScreenState extends State<AuthScreen> {
   void _navigateToApp() {
     Navigator.of(
       context,
-    ).pushReplacement(CupertinoPageRoute(builder: (context) => const App()));
+    ).pushReplacement(CupertinoPageRoute(builder: (context) => App()));
   }
 
   void _navigateToVaultCreation() {
-    Navigator.of(
-      context,
-    ).pushReplacement(CupertinoPageRoute(builder: (context) => const CreateVaultScreen()));
+    Navigator.of(context).pushReplacement(
+      CupertinoPageRoute(builder: (context) => const CreateVaultScreen()),
+    );
   }
 
   void _showErrorSnackBar(BuildContext context, String message) {
@@ -228,35 +215,9 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       },
     );
-  }
-
-  String _getBiometricTypeName(BiometricType type) {
-    switch (type) {
-      case BiometricType.face:
-        return 'Face ID';
-      case BiometricType.fingerprint:
-        return 'Fingerprint';
-      case BiometricType.iris:
-        return 'Iris';
-      case BiometricType.weak:
-        return 'Weak Biometric';
-      case BiometricType.strong:
-        return 'Strong Biometric';
-    }
-  }
-
-  IconData _getBiometricTypeIcon(BiometricType type) {
-    switch (type) {
-      case BiometricType.face:
-        return Icons.face;
-      case BiometricType.fingerprint:
-        return Icons.fingerprint;
-      case BiometricType.iris:
-        return Icons.visibility;
-      case BiometricType.weak:
-      case BiometricType.strong:
-        return Icons.security;
-    }
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   // Get the appropriate icon for authentication method
@@ -309,20 +270,22 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     return CupertinoPageScaffold(
-      resizeToAvoidBottomInset: false,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 80),
               // App Logo/Icon
               SvgPicture.asset(
                 'assets/images/depass.svg',
-                height:120,
+                height: 120,
                 colorFilter: ColorFilter.mode(
-                  DepassConstants.isDarkMode ? DepassConstants.darkText : DepassConstants.lightText,
+                  DepassConstants.isDarkMode
+                      ? DepassConstants.darkText
+                      : DepassConstants.lightText,
                   BlendMode.srcIn,
                 ),
               ),
@@ -396,57 +359,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
               const SizedBox(height: 24),
 
-              // Primary Action Button
-              CupertinoButton.filled(
-                onPressed: _isLoading
-                    ? null
-                    : (_isSettingUp
-                          ? _setupMasterPassword
-                          : _authenticateWithPassword),
-
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CupertinoActivityIndicator(radius: 10),
-                      )
-                    : Text(
-                        _isSettingUp ? 'Setup Password' : 'Unlock',
-                        style: DepassTextTheme.button,
-                      ),
-              ),
-
-              // Local Authentication Button (Biometrics, PIN, Pattern, Password)
-              if (!_isSettingUp && _biometricAvailable && _biometricEnabled) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'or',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator),
-                  ),
-                  child: CupertinoButton.tinted(
-                    color: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
-                    onPressed: _isLoading ? null : _authenticateWithBiometrics,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(_getAuthenticationIcon()),
-                        const SizedBox(width: 8),
-                        Text(_getAuthenticationLabel()),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-
-              // Setup Instructions
               if (_isSettingUp) ...[
                 const SizedBox(height: 32),
                 Container(
@@ -473,15 +385,81 @@ class _AuthScreenState extends State<AuthScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text('• At least 6 characters long'),
-                      const Text('• Use a strong, unique password'),
-                      const Text(
+                      Text(
+                        '• At least 6 characters long',
+                        style: TextStyle(color: Colors.blue[700]),
+                      ),
+                      Text(
+                        '• Use a strong, unique password',
+                        style: TextStyle(color: Colors.blue[700]),
+                      ),
+                      Text(
                         '• Remember this password - it cannot be recovered',
+                        style: TextStyle(color: Colors.blue[700]),
                       ),
                     ],
                   ),
                 ),
                 SizedBox(height: 12),
+              ],
+
+              // Primary Action Button
+              CupertinoButton.filled(
+                onPressed: _isLoading
+                    ? null
+                    : (_isSettingUp
+                          ? _setupMasterPassword
+                          : _authenticateWithPassword),
+
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CupertinoActivityIndicator(radius: 10),
+                      )
+                    : Text(
+                        _isSettingUp ? 'Setup Password' : 'Unlock',
+                        style: DepassTextTheme.button,
+                      ),
+              ),
+
+              // Local Authentication Button (Biometrics, PIN, Pattern, Password)
+              if (!_isSettingUp &&
+                  _biometricAvailable &&
+                  _biometricEnabled) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'or',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: DepassConstants.isDarkMode
+                          ? DepassConstants.darkSeparator
+                          : DepassConstants.lightSeparator,
+                    ),
+                  ),
+                  child: CupertinoButton.tinted(
+                    color: DepassConstants.isDarkMode
+                        ? DepassConstants.darkBackground
+                        : DepassConstants.lightBackground,
+                    onPressed: _isLoading ? null : _authenticateWithBiometrics,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(_getAuthenticationIcon()),
+                        const SizedBox(width: 8),
+                        Text(_getAuthenticationLabel()),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
               ],
             ],
           ),

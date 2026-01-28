@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:crypto/crypto.dart';
@@ -79,6 +81,7 @@ class AuthService {
       final isDeviceSupported = await _localAuth.isDeviceSupported();
       return isAvailable && isDeviceSupported;
     } catch (e) {
+      log("Error: $e");
       return false;
     }
   }
@@ -106,14 +109,12 @@ class AuthService {
   // Authenticate with local authentication (biometrics, PIN, pattern, password)
   Future<bool> authenticateWithBiometrics() async {
     try {
-      if (!await isBiometricAvailable()) return false;
+      final available = await isBiometricAvailable();
+      if (!available) return false;
 
       final isAuthenticated = await _localAuth.authenticate(
         localizedReason: 'Please authenticate to access your passwords',
-        options: const AuthenticationOptions(
-          biometricOnly: false,  // Allow all authentication methods
-          stickyAuth: true,
-        ),
+        persistAcrossBackgrounding: true
       );
 
       if (isAuthenticated) {
@@ -121,7 +122,8 @@ class AuthService {
         await _updateLastActiveTime();
         
         // Auto-enable biometric authentication if it was successful and not enabled yet
-        if (!await isBiometricEnabled()) {
+        final biometricEnabled = await isBiometricEnabled();
+        if (!biometricEnabled) {
           await setBiometricEnabled(true);
         }
       }
@@ -135,20 +137,20 @@ class AuthService {
   // Verify user identity without changing biometric settings
   Future<bool> verifyIdentityWithBiometrics() async {
     try {
-      if (!await isBiometricAvailable()) {
+      final available = await isBiometricAvailable();
+      log("Biometric available: $available");
+      if (!available) {
         return false;
       }
 
       final isAuthenticated = await _localAuth.authenticate(
         localizedReason: 'Please authenticate to change security settings',
-        options: const AuthenticationOptions(
-          biometricOnly: false,  // Allow all authentication methods
-          stickyAuth: true,
-        ),
+        persistAcrossBackgrounding: true
       );
 
       return isAuthenticated;
     } catch (e) {
+      log("Error during biometric verification: $e");
       // Log error for debugging in development
       return false;
     }

@@ -1,13 +1,18 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:typed_data';
 import 'package:depass/models/note.dart';
 import 'package:depass/models/vault.dart';
+import 'package:depass/services/notification_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:depass/services/database_service.dart';
 import 'package:depass/models/pass.dart';
+
+// Forward declaration to avoid circular import
+abstract class SyncChainNotifier {
+  Future<void> onPasswordChanged();
+}
 
 class PasswordProvider extends ChangeNotifier {
   final DBService _dbService = DBService.instance;
@@ -24,6 +29,23 @@ class PasswordProvider extends ChangeNotifier {
 
   // Current selected vault ID
   int _currentVaultId = 0;
+
+  // Sync chain notifier for real-time sync
+  SyncChainNotifier? _syncChainNotifier;
+
+  // Set sync chain notifier
+  void setSyncChainNotifier(SyncChainNotifier? notifier) {
+    _syncChainNotifier = notifier;
+  }
+
+  // Notify sync chain of password changes
+  Future<void> _notifySyncChain() async {
+    try {
+      await _syncChainNotifier?.onPasswordChanged();
+    } catch (e) {
+      print('Error notifying sync chain: $e');
+    }
+  }
 
   // Safe notification method
   void _safeNotifyListeners() {
@@ -118,40 +140,6 @@ class PasswordProvider extends ChangeNotifier {
     }
   }
 
-  // Update password title
-  Future<void> updatePasswordTitle(int passId, String newTitle) async {
-    try {
-      await _dbService.updatePass(passId, newTitle);
-
-      // Update cached data
-      if (_passwordCache.containsKey(passId)) {
-        for (var item in _passwordCache[passId]!) {
-          item['PassTitle'] = newTitle;
-        }
-      }
-
-      // Update all passes cache
-      if (_allPasses != null) {
-        final passIndex = _allPasses!.indexWhere(
-          (pass) => pass.PassId == passId,
-        );
-        if (passIndex != -1) {
-          _allPasses![passIndex] = Pass(
-            PassId: _allPasses![passIndex].PassId,
-            PassTitle: newTitle,
-            CreatedAt: _allPasses![passIndex].CreatedAt,
-            VaultId: _allPasses![passIndex].VaultId,
-          );
-        }
-      }
-
-      _safeNotifyListeners();
-    } catch (e) {
-      print('Error updating password title: $e');
-      rethrow;
-    }
-  }
-
   // Update note
   Future<void> updateNote(
     int noteId,
@@ -174,6 +162,9 @@ class PasswordProvider extends ChangeNotifier {
       }
 
       _safeNotifyListeners();
+
+      // Notify sync chain of changes
+      await _notifySyncChain();
     } catch (e) {
       print('Error updating note: $e');
       rethrow;
@@ -195,6 +186,9 @@ class PasswordProvider extends ChangeNotifier {
 
       // Refresh the specific password data to include the new note
       await loadPasswordData(passId);
+
+      // Notify sync chain of changes
+      await _notifySyncChain();
     } catch (e) {
       print('Error creating note: $e');
       rethrow;
@@ -216,6 +210,9 @@ class PasswordProvider extends ChangeNotifier {
 
       // Refresh all passes to include the new password
       await loadAllPasses();
+
+      // Notify sync chain of changes
+      await _notifySyncChain();
     } catch (e) {
       print('Error creating password: $e');
       rethrow;
@@ -297,7 +294,10 @@ class PasswordProvider extends ChangeNotifier {
   }
 
   // Export all passwords to JSON
-  Future<Map<String, dynamic>> exportToJSON() async {
+  Future<void> exportToJSON() async {
+    if (NotiService.instance.isInitialized == false) {
+      await NotiService.instance.initNotification();
+    }
     try {
       // Ensure we have all passes loaded
       if (_allPasses == null) {
@@ -351,7 +351,7 @@ class PasswordProvider extends ChangeNotifier {
         }
       }
 
-      return exportData;
+      await saveJSONToFile(exportData);
     } catch (e) {
       print('Error exporting to JSON: $e');
       rethrow;
@@ -360,6 +360,9 @@ class PasswordProvider extends ChangeNotifier {
 
   // Export specific password to JSON
   Future<Map<String, dynamic>> exportPasswordToJSON(int passId) async {
+    if (NotiService.instance.isInitialized == false) {
+      await NotiService.instance.initNotification();
+    }
     try {
       final pass = _allPasses?.firstWhere((p) => p.PassId == passId);
       if (pass == null) {
@@ -443,6 +446,9 @@ class PasswordProvider extends ChangeNotifier {
 
   // Export all passwords to CSV file
   Future<String> exportAllPasswordsToCSV() async {
+    if (NotiService.instance.isInitialized == false) {
+      await NotiService.instance.initNotification();
+    }
     try {
       final csvData = await exportToCSV();
       return await saveCSVToFile(csvData);
@@ -489,6 +495,8 @@ class PasswordProvider extends ChangeNotifier {
           final passwordData = _passwordCache[pass.PassId] ?? [];
           final vaultData = await _dbService.getVaultById(pass.VaultId);
           final vaultName = vaultData != null ? vaultData.VaultTitle : '';
+          final vaultIcon = vaultData != null ? vaultData.VaultIcon : '';
+          final vaultColor = vaultData != null ? vaultData.VaultColor : '';
           final passCreatedDate = DateTime.fromMillisecondsSinceEpoch(
             pass.CreatedAt,
           ).toIso8601String();
@@ -507,7 +515,7 @@ class PasswordProvider extends ChangeNotifier {
               ).toIso8601String();
 
               csvContent +=
-                  '${_escapeCsvValue(pass.PassId.toString())},${_escapeCsvValue(pass.PassTitle)},${_escapeCsvValue(pass.VaultId.toString())},${_escapeCsvValue(vaultName)},${_escapeCsvValue(passCreatedDate)},${_escapeCsvValue(fieldType)},${_escapeCsvValue(fieldContent)},${_escapeCsvValue(fieldCreatedDate)}\n';
+                  '${_escapeCsvValue(pass.PassId.toString())},${_escapeCsvValue(pass.PassTitle)},${_escapeCsvValue(pass.VaultId.toString())},${_escapeCsvValue(vaultName)},${_escapeCsvValue(vaultIcon)},${_escapeCsvValue(vaultColor)},${_escapeCsvValue(passCreatedDate)},${_escapeCsvValue(fieldType)},${_escapeCsvValue(fieldContent)},${_escapeCsvValue(fieldCreatedDate)}\n';
             }
           }
         }
@@ -559,7 +567,7 @@ class PasswordProvider extends ChangeNotifier {
       final file = result.files.first;
       // Try multiple approaches to get file content
       Uint8List? fileBytes;
-      
+
       if (file.bytes != null && file.bytes!.isNotEmpty) {
         fileBytes = file.bytes!;
         log('Using file.bytes, length: ${fileBytes.length}');
@@ -571,7 +579,7 @@ class PasswordProvider extends ChangeNotifier {
 
       final csvString = utf8.decode(fileBytes);
       final lines = const LineSplitter().convert(csvString);
-      
+
       if (lines.isEmpty) {
         throw 'File is empty';
       }
@@ -582,15 +590,15 @@ class PasswordProvider extends ChangeNotifier {
 
       // Skip header
       final dataLines = lines.skip(1);
-      
+
       // Use Maps for better deduplication
       Map<int, Pass> uniquePasses = {};
       Map<int, Vault> uniqueVaults = {};
       List<Note> allNotes = [];
-      
+
       for (final line in dataLines) {
         if (line.trim().isEmpty) continue; // Skip empty lines
-        
+
         final columns = _parseCSVLine(line);
         if (columns.length < 8) {
           log('Skipping invalid line: $line');
@@ -601,10 +609,12 @@ class PasswordProvider extends ChangeNotifier {
         final title = columns[1];
         final vaultId = int.tryParse(columns[2]) ?? 1;
         final vaultName = columns[3];
-        final createdDate = columns[4];
-        final fieldType = columns[5];
-        final fieldContent = columns[6];
-        final fieldCreatedDate = columns[7];
+        final vaultIcon = columns[4];
+        final vaultColor = columns[5];
+        final createdDate = columns[6];
+        final fieldType = columns[7];
+        final fieldContent = columns[8];
+        final fieldCreatedDate = columns[9];
 
         // Add pass to map (automatically handles duplicates)
         if (!uniquePasses.containsKey(passId)) {
@@ -623,6 +633,8 @@ class PasswordProvider extends ChangeNotifier {
           uniqueVaults[vaultId] = Vault(
             VaultId: vaultId,
             VaultTitle: vaultName,
+            VaultIcon: vaultIcon,
+            VaultColor: vaultColor,
             CreatedAt: createdDate.isNotEmpty
                 ? DateTime.parse(createdDate).millisecondsSinceEpoch
                 : DateTime.now().millisecondsSinceEpoch,
@@ -651,39 +663,45 @@ class PasswordProvider extends ChangeNotifier {
         throw 'No valid password entries found in CSV';
       }
 
-      log('Parsed ${uniquePasses.length} unique passes, ${uniqueVaults.length} unique vaults, ${allNotes.length} notes');
+      log(
+        'Parsed ${uniquePasses.length} unique passes, ${uniqueVaults.length} unique vaults, ${allNotes.length} notes',
+      );
 
       // Clear existing data and import new data
       await _dbService.clearAllData();
-      
+
       log('Creating ${uniqueVaults.length} unique vaults');
       for (final vault in uniqueVaults.values) {
         try {
           log('About to create vault: ${vault.VaultId} - ${vault.VaultTitle}');
-          await _dbService.createVault(vault.VaultTitle, vaultId: vault.VaultId);
-          log('Successfully created vault: ${vault.VaultId} - ${vault.VaultTitle}');
+          await _dbService.createVault(
+            vault.VaultTitle,
+            vault.VaultIcon,
+            vault.VaultColor,
+            vaultId: vault.VaultId,
+          );
+          log(
+            'Successfully created vault: ${vault.VaultId} - ${vault.VaultTitle}',
+          );
         } catch (e) {
           log('Failed to create vault ${vault.VaultId}: $e');
         }
       }
-      
+
       // Check how many vaults are actually in the database
       final allVaultsInDb = await _dbService.getAllVaults();
       log('Total vaults in database after creation: ${allVaultsInDb.length}');
       for (final vault in allVaultsInDb) {
         log('DB Vault: ${vault.VaultId} - ${vault.VaultTitle}');
       }
-      
+
       log('Creating ${uniquePasses.length} unique passwords');
       for (final pass in uniquePasses.values) {
         final passNotes = allNotes
             .where((note) => note.PassId == pass.PassId)
-            .map((note) => {
-                  'Description': note.Description,
-                  'Type': note.Type,
-                })
+            .map((note) => {'Description': note.Description, 'Type': note.Type})
             .toList();
-            
+
         try {
           await _dbService.createBulkNotes(
             notes: passNotes,
@@ -698,11 +716,14 @@ class PasswordProvider extends ChangeNotifier {
 
       // Refresh data
       await refreshAllData();
-      
+
       // Final verification
-      final finalVaultsInProvider = _allPasses?.map((p) => p.VaultId).toSet().length ?? 0;
-      log('Final verification - unique vault IDs in passes: $finalVaultsInProvider');
-      
+      final finalVaultsInProvider =
+          _allPasses?.map((p) => p.VaultId).toSet().length ?? 0;
+      log(
+        'Final verification - unique vault IDs in passes: $finalVaultsInProvider',
+      );
+
       log('Successfully imported ${uniquePasses.length} passwords from CSV');
     } catch (e) {
       log('Error importing from CSV: $e');
@@ -715,10 +736,10 @@ class PasswordProvider extends ChangeNotifier {
     List<String> result = [];
     bool inQuotes = false;
     String currentField = '';
-    
+
     for (int i = 0; i < line.length; i++) {
       final char = line[i];
-      
+
       if (char == '"') {
         if (inQuotes && i + 1 < line.length && line[i + 1] == '"') {
           // Escaped quote
@@ -736,10 +757,10 @@ class PasswordProvider extends ChangeNotifier {
         currentField += char;
       }
     }
-    
+
     // Add the last field
     result.add(currentField);
-    
+
     return result;
   }
 }

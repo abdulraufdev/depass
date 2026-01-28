@@ -3,8 +3,10 @@ import 'dart:developer';
 import 'package:depass/providers/password_provider.dart';
 import 'package:depass/providers/vault_provider.dart';
 import 'package:depass/services/database_service.dart';
+import 'package:depass/services/notification_service.dart';
 import 'package:depass/theme/text_theme.dart';
 import 'package:depass/utils/constants.dart';
+import 'package:depass/utils/extensions.dart';
 import 'package:depass/views/password/edit_password.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -140,7 +142,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
               scrollController: FixedExtentScrollController(
                 initialItem: _selectedIndex,
               ),
-              backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
+              backgroundColor: DepassConstants.isDarkMode
+                  ? DepassConstants.darkBackground
+                  : DepassConstants.lightBackground,
               itemExtent: 42.0,
               onSelectedItemChanged: (int index) {
                 tempSelectedIndex = index;
@@ -151,7 +155,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                       child: Text(
                         vault.VaultTitle,
                         style: TextStyle(
-                          color: DepassConstants.isDarkMode ? DepassConstants.darkText : DepassConstants.lightText,
+                          color: DepassConstants.isDarkMode
+                              ? DepassConstants.darkText
+                              : DepassConstants.lightText,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -244,7 +250,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
       final passwordProvider = context.read<PasswordProvider>();
       passwordProvider
           .exportPasswordToFile(passId)
-          .then((filePath) {
+          .then((filePath) async {
             log("Exported to $filePath");
             setState(() {
               _isExporting = false;
@@ -253,7 +259,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
               context: context,
               builder: (context) => CupertinoAlertDialog(
                 title: Text('Export Successful'),
-                content: Text('Password exported to $filePath'),
+                content: Text('Password exported to JSON.'),
                 actions: [
                   CupertinoDialogAction(
                     child: Text('OK'),
@@ -262,6 +268,14 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 ],
               ),
             );
+            // Show notification
+            if (context.mounted) {
+              await NotiService.instance.showNotification(
+                id: 3,
+                title: 'Export Successful',
+                body: 'Password exported to JSON',
+              );
+            }
           })
           .catchError((e) {
             setState(() {
@@ -300,7 +314,6 @@ class _PasswordScreenState extends State<PasswordScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         transitionBetweenRoutes: false,
-        middle: Text('Password', style: TextStyle(fontFamily: 'Inter'),),
         trailing: _isDeleting
             ? CupertinoActivityIndicator()
             : CupertinoButton(
@@ -310,7 +323,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                     context: context,
                     builder: (context) {
                       return CupertinoPageScaffold(
-                        backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
+                        backgroundColor: DepassConstants.isDarkMode
+                            ? DepassConstants.darkFadedBackground
+                            : DepassConstants.lightFadedBackground,
                         navigationBar: CupertinoNavigationBar(
                           middle: Text('Options'),
                         ),
@@ -319,7 +334,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             SizedBox(
                               height: 1,
                               child: Container(
-                                color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
+                                color: DepassConstants.isDarkMode
+                                    ? DepassConstants.darkSeparator
+                                    : DepassConstants.lightSeparator,
                               ),
                             ),
                             CupertinoButton(
@@ -339,7 +356,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             SizedBox(
                               height: 2,
                               child: Container(
-                                color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
+                                color: DepassConstants.isDarkMode
+                                    ? DepassConstants.darkSeparator
+                                    : DepassConstants.lightSeparator,
                               ),
                             ),
                             CupertinoButton(
@@ -364,7 +383,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
                             SizedBox(
                               height: 2,
                               child: Container(
-                                color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
+                                color: DepassConstants.isDarkMode
+                                    ? DepassConstants.darkSeparator
+                                    : DepassConstants.lightSeparator,
                               ),
                             ),
                             CupertinoButton(
@@ -393,120 +414,154 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 child: Icon(LucideIcons.ellipsis),
               ),
       ),
-      child: Padding(
-        padding: EdgeInsets.all(12.0),
-        child: SingleChildScrollView(
-          child: Consumer<PasswordProvider>(
-            builder: (context, passwordProvider, child) {
-              final isLoading = passwordProvider.isLoadingPassword(passId);
-              final data = passwordProvider.getPasswordData(passId);
+      child: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(12.0),
+              child: SingleChildScrollView(
+                child: Consumer<PasswordProvider>(
+                  builder: (context, passwordProvider, child) {
+                    final isLoading = passwordProvider.isLoadingPassword(
+                      passId,
+                    );
+                    final data = passwordProvider.getPasswordData(passId);
 
-              if (isLoading) {
-                return Center(child: CupertinoActivityIndicator());
-              }
+                    if (isLoading) {
+                      return Center(child: CupertinoActivityIndicator());
+                    }
 
-              if (data == null || data.isEmpty) {
-                return Center(child: Text('No data found'));
-              }
+                    if (data == null || data.isEmpty) {
+                      return Center(child: Text('No data found'));
+                    }
 
-              final passTitle = data.isNotEmpty
-                  ? data[0]['PassTitle'] as String? ?? 'Untitled'
-                  : 'Untitled';
+                    final passTitle = data.isNotEmpty
+                        ? data[0]['PassTitle'] as String? ?? 'Untitled'
+                        : 'Untitled';
 
-              return Column(
-                spacing: 32,
-                children: [
-                  SizedBox(height: 40),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          passTitle,
-                          style: DepassTextTheme.heading1,
-                          overflow: TextOverflow.ellipsis,
+                    return Column(
+                      spacing: 32,
+                      children: [
+                        SizedBox(height: 32),
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: DepassConstants.isDarkMode
+                                ? DepassConstants.darkDropdownButton
+                                : DepassConstants.lightDropdownButton,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            passTitle,
+                            style: DepassTextTheme.heading1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                      ),
-                      CupertinoButton(
-                        child: Icon(LucideIcons.pen),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            CupertinoPageRoute(
-                              builder: (context) =>
-                                  EditPasswordScreen(passwordId: passId),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  Column(
-                    spacing: 24,
-                    children: List.generate(4, (index) {
-                      final notesOfType = data
-                          .where(
-                            (note) =>
-                                note['Type'] ==
-                                DepassConstants.noteTypes[index],
-                          )
-                          .toList();
+                        Column(
+                          spacing: 24,
+                          children: List.generate(4, (index) {
+                            final notesOfType = data
+                                .where(
+                                  (note) =>
+                                      note['Type'] ==
+                                      DepassConstants.noteTypes[index],
+                                )
+                                .toList();
 
-                      return notesOfType.isNotEmpty
-                          ? Column(
-                              spacing: 12,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(DepassConstants.noteTypes[index]),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: DepassConstants.isDarkMode ? DepassConstants.darkSeparator : DepassConstants.lightSeparator,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: Column(
-                                    children: List.generate(
-                                      notesOfType.length,
-                                      (index2) {
-                                        final note = notesOfType[index2];
-                                        return CupertinoListTile(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 10,
+                            return notesOfType.isNotEmpty
+                                ? Column(
+                                    spacing: 12,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        DepassConstants.noteTypes[index]
+                                            .toString()
+                                            .capitalize(),
+                                      ),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: DepassConstants.isDarkMode
+                                              ? DepassConstants.darkSeparator
+                                              : DepassConstants.lightSeparator,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
-                                          backgroundColor:
-                                              DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
-                                          title: _customTitle(note),
-                                          trailing: CupertinoButton(
-                                            child: Icon(LucideIcons.copy),
-                                            onPressed: () {
-                                              final description =
-                                                  note['Description']
-                                                      as String? ??
-                                                  '';
-                                              if (description.isNotEmpty) {
-                                                Clipboard.setData(
-                                                  ClipboardData(
-                                                    text: description,
-                                                  ),
-                                                );
-                                              }
+                                        ),
+                                        clipBehavior: Clip.antiAlias,
+                                        child: Column(
+                                          children: List.generate(
+                                            notesOfType.length,
+                                            (index2) {
+                                              final note = notesOfType[index2];
+                                              return CupertinoListTile(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 4,
+                                                ),
+                                                backgroundColor:
+                                                    DepassConstants.isDarkMode
+                                                    ? DepassConstants
+                                                          .darkFadedBackground
+                                                    : DepassConstants
+                                                          .lightFadedBackground,
+                                                title: _customTitle(note),
+                                                trailing: CupertinoButton(
+                                                  child: Icon(LucideIcons.copy),
+                                                  onPressed: () {
+                                                    final description =
+                                                        note['Description']
+                                                            as String? ??
+                                                        '';
+                                                    if (description
+                                                        .isNotEmpty) {
+                                                      Clipboard.setData(
+                                                        ClipboardData(
+                                                          text: description,
+                                                        ),
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                              );
                                             },
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : SizedBox.shrink();
-                    }),
-                  ),
-                ],
-              );
-            },
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : SizedBox.shrink();
+                          }),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
           ),
-        ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.all(8.0),
+              child: CupertinoButton(
+                child: Column(
+                  spacing: 4,
+                  children: [Icon(LucideIcons.pen), Text('Edit')],
+                ),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) =>
+                          EditPasswordScreen(passwordId: passId),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

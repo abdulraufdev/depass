@@ -1,6 +1,8 @@
 import 'package:depass/theme/text_theme.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:developer';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -21,7 +23,7 @@ class _ReportScreenState extends State<ReportScreen> {
     super.dispose();
   }
 
-  sendMail() async {
+  sendMail() {
     // Prevent multiple simultaneous sends
     if (_isSending) return;
 
@@ -43,37 +45,23 @@ class _ReportScreenState extends State<ReportScreen> {
     });
 
     try {
-      // Create email URL
-      final String recipient = 'editsabdulrauf5681@gmail.com';
-      final String subject = Uri.encodeComponent('Bug Report - Depass App');
-      final String body = Uri.encodeComponent(
-        'Issue: ${issueController.text}\n\nReported by: ${emailController.text}\n\nApp: Depass Password Manager'
-      );
       
-      final Uri emailUri = Uri.parse('mailto:$recipient?subject=$subject&body=$body');
       
       // Try to launch email app
-      if (await canLaunchUrl(emailUri)) {
-        await launchUrl(emailUri);
-        
-        // Clear form fields after successful launch
+      launchUrl(Uri.parse("mailto:editsabdulrauf5681@gmail.com?subject=Bug Report - Depass App&body=Issue: $issue\n\nReported by: $email\n\nApp: Depass Password Manager"));
+
+      // Clear form fields after successful launch
         emailController.clear();
         issueController.clear();
         
-        _showDialog(
-          title: 'Thank you!',
-          content: 'Your email app has been opened. Please send the email to complete your report.',
-          isError: false,
-        );
-      } else {
-        throw Exception('No email app available');
-      }
+        
     } catch (error) {
       _showDialog(
         title: 'Error',
         content: 'Failed to open email app. Please check if you have an email app installed and try again.',
         isError: true,
       );
+      log("Error opening email app: $error");
     } finally {
       setState(() {
         _isSending = false;
@@ -113,7 +101,7 @@ class _ReportScreenState extends State<ReportScreen> {
             Text('Report a bug', style: DepassTextTheme.heading1),
             SizedBox(height: 12),
             Text(
-              'If you encounter any bugs or issues while using the app, please report them to help us improve the app. Fill out the form below and tap "Open Email App" to send your report.',
+              'If you encounter any bugs or issues while using the app, please report them to help me improve the app. Fill out the form below and tap "Open Email App" to send your report.',
             ),
             SizedBox(height: 20),
             //create a form containning user email and description of the bug
@@ -139,7 +127,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     height: 20,
                     child: CupertinoActivityIndicator(),
                   )
-                : Icon(CupertinoIcons.mail),
+                : Icon(LucideIcons.mail),
               padding: EdgeInsets.symmetric(vertical: 20),
               onTap: _isSending ? null : () {
                 sendMail();

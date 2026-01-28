@@ -1,253 +1,202 @@
-enum SyncChainStatus {
-  disconnected,
-  creating,
-  waiting,
-  connecting,
-  connected,
-  error,
+import 'dart:convert';
+
+/// Represents a device connected to the sync chain
+class SyncChainDevice {
+  final String deviceId;
+  final String deviceName;
+  final DateTime connectedAt;
+  final DateTime lastSyncedAt;
+
+  SyncChainDevice({
+    required this.deviceId,
+    required this.deviceName,
+    required this.connectedAt,
+    required this.lastSyncedAt,
+  });
+
+  factory SyncChainDevice.fromMap(Map<String, dynamic> map) {
+    return SyncChainDevice(
+      deviceId: map['deviceId'] ?? '',
+      deviceName: map['deviceName'] ?? '',
+      connectedAt: DateTime.fromMillisecondsSinceEpoch(map['connectedAt'] ?? 0),
+      lastSyncedAt: DateTime.fromMillisecondsSinceEpoch(
+        map['lastSyncedAt'] ?? 0,
+      ),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'deviceId': deviceId,
+      'deviceName': deviceName,
+      'connectedAt': connectedAt.millisecondsSinceEpoch,
+      'lastSyncedAt': lastSyncedAt.millisecondsSinceEpoch,
+    };
+  }
+
+  SyncChainDevice copyWith({
+    String? deviceId,
+    String? deviceName,
+    DateTime? connectedAt,
+    DateTime? lastSyncedAt,
+  }) {
+    return SyncChainDevice(
+      deviceId: deviceId ?? this.deviceId,
+      deviceName: deviceName ?? this.deviceName,
+      connectedAt: connectedAt ?? this.connectedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+    );
+  }
 }
 
-enum SyncMessageType {
-  handshake,
-  passwordSync,
-  passwordUpdate,
-  passwordDelete,
-  verification,
-  verificationResponse,
-  heartbeat,
-}
-
+/// Represents a sync chain configuration
 class SyncChain {
-  final String id;
+  final String chainId;
   final String seedPhrase;
   final DateTime createdAt;
-  final List<String> connectedPeers;
-  final SyncChainStatus status;
-  final bool isOwner;
+  final List<SyncChainDevice> connectedDevices;
+  final bool isActive;
 
   SyncChain({
-    required this.id,
+    required this.chainId,
     required this.seedPhrase,
     required this.createdAt,
-    required this.connectedPeers,
-    required this.status,
-    required this.isOwner,
+    required this.connectedDevices,
+    this.isActive = true,
   });
 
   factory SyncChain.fromMap(Map<String, dynamic> map) {
     return SyncChain(
-      id: map['id'] ?? '',
+      chainId: map['chainId'] ?? '',
       seedPhrase: map['seedPhrase'] ?? '',
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
-      connectedPeers: List<String>.from(map['connectedPeers'] ?? []),
-      status: SyncChainStatus.values.firstWhere(
-        (e) => e.toString() == map['status'],
-        orElse: () => SyncChainStatus.disconnected,
-      ),
-      isOwner: map['isOwner'] ?? false,
+      connectedDevices:
+          (map['connectedDevices'] as List?)
+              ?.map((d) => SyncChainDevice.fromMap(d as Map<String, dynamic>))
+              .toList() ??
+          [],
+      isActive: map['isActive'] ?? true,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'chainId': chainId,
       'seedPhrase': seedPhrase,
       'createdAt': createdAt.millisecondsSinceEpoch,
-      'connectedPeers': connectedPeers,
-      'status': status.toString(),
-      'isOwner': isOwner,
+      'connectedDevices': connectedDevices.map((d) => d.toMap()).toList(),
+      'isActive': isActive,
     };
+  }
+
+  String toJson() => jsonEncode(toMap());
+
+  factory SyncChain.fromJson(String json) {
+    return SyncChain.fromMap(jsonDecode(json) as Map<String, dynamic>);
   }
 
   SyncChain copyWith({
-    String? id,
+    String? chainId,
     String? seedPhrase,
     DateTime? createdAt,
-    List<String>? connectedPeers,
-    SyncChainStatus? status,
-    bool? isOwner,
+    List<SyncChainDevice>? connectedDevices,
+    bool? isActive,
   }) {
     return SyncChain(
-      id: id ?? this.id,
+      chainId: chainId ?? this.chainId,
       seedPhrase: seedPhrase ?? this.seedPhrase,
       createdAt: createdAt ?? this.createdAt,
-      connectedPeers: connectedPeers ?? this.connectedPeers,
-      status: status ?? this.status,
-      isOwner: isOwner ?? this.isOwner,
+      connectedDevices: connectedDevices ?? this.connectedDevices,
+      isActive: isActive ?? this.isActive,
     );
   }
 }
 
+/// Types of sync messages
+enum SyncMessageType {
+  handshake,
+  handshakeResponse,
+  fullSync,
+  fullSyncResponse,
+  passwordAdded,
+  passwordUpdated,
+  passwordDeleted,
+  noteAdded,
+  noteUpdated,
+  noteDeleted,
+  vaultAdded,
+  vaultUpdated,
+  vaultDeleted,
+  ping,
+  pong,
+  disconnect,
+}
+
+/// A message sent between devices in the sync chain
 class SyncMessage {
   final SyncMessageType type;
-  final Map<String, dynamic> data;
   final String senderId;
+  final String senderName;
   final DateTime timestamp;
+  final Map<String, dynamic> payload;
 
   SyncMessage({
     required this.type,
-    required this.data,
     required this.senderId,
+    required this.senderName,
     required this.timestamp,
+    required this.payload,
   });
 
-  factory SyncMessage.fromJson(Map<String, dynamic> json) {
+  factory SyncMessage.fromMap(Map<String, dynamic> map) {
     return SyncMessage(
       type: SyncMessageType.values.firstWhere(
-        (e) => e.toString() == json['type'],
-        orElse: () => SyncMessageType.handshake,
+        (e) => e.name == map['type'],
+        orElse: () => SyncMessageType.ping,
       ),
-      data: json['data'] ?? {},
-      senderId: json['senderId'] ?? '',
-      timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] ?? 0),
+      senderId: map['senderId'] ?? '',
+      senderName: map['senderName'] ?? '',
+      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp'] ?? 0),
+      payload: map['payload'] ?? {},
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
-      'type': type.toString(),
-      'data': data,
+      'type': type.name,
       'senderId': senderId,
+      'senderName': senderName,
       'timestamp': timestamp.millisecondsSinceEpoch,
+      'payload': payload,
     };
+  }
+
+  String toJson() => jsonEncode(toMap());
+
+  factory SyncMessage.fromJson(String json) {
+    return SyncMessage.fromMap(jsonDecode(json) as Map<String, dynamic>);
   }
 }
 
-class PeerConnection {
-  final String peerId;
+/// Connection status for sync chain
+enum SyncChainStatus {
+  disconnected,
+  discovering,
+  connecting,
+  connected,
+  syncing,
+  error,
+}
+
+/// Represents a discovered device
+class DiscoveredDevice {
+  final String endpointId;
   final String deviceName;
-  final bool isConnected;
-  final DateTime lastSeen;
-  final bool isPendingVerification;
+  final String serviceId;
 
-  PeerConnection({
-    required this.peerId,
+  DiscoveredDevice({
+    required this.endpointId,
     required this.deviceName,
-    required this.isConnected,
-    required this.lastSeen,
-    this.isPendingVerification = false,
+    required this.serviceId,
   });
-
-  factory PeerConnection.fromMap(Map<String, dynamic> map) {
-    return PeerConnection(
-      peerId: map['peerId'] ?? '',
-      deviceName: map['deviceName'] ?? '',
-      isConnected: map['isConnected'] ?? false,
-      lastSeen: DateTime.fromMillisecondsSinceEpoch(map['lastSeen'] ?? 0),
-      isPendingVerification: map['isPendingVerification'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'peerId': peerId,
-      'deviceName': deviceName,
-      'isConnected': isConnected,
-      'lastSeen': lastSeen.millisecondsSinceEpoch,
-      'isPendingVerification': isPendingVerification,
-    };
-  }
-
-  PeerConnection copyWith({
-    String? peerId,
-    String? deviceName,
-    bool? isConnected,
-    DateTime? lastSeen,
-    bool? isPendingVerification,
-  }) {
-    return PeerConnection(
-      peerId: peerId ?? this.peerId,
-      deviceName: deviceName ?? this.deviceName,
-      isConnected: isConnected ?? this.isConnected,
-      lastSeen: lastSeen ?? this.lastSeen,
-      isPendingVerification: isPendingVerification ?? this.isPendingVerification,
-    );
-  }
-}
-
-class SyncedPassword {
-  final int passId;
-  final String passTitle;
-  final int vaultId;
-  final int createdAt;
-  final int updatedAt;
-  final List<SyncedNote> notes;
-  final String lastModifiedBy;
-
-  SyncedPassword({
-    required this.passId,
-    required this.passTitle,
-    required this.vaultId,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.notes,
-    required this.lastModifiedBy,
-  });
-
-  factory SyncedPassword.fromMap(Map<String, dynamic> map) {
-    return SyncedPassword(
-      passId: map['passId'] ?? 0,
-      passTitle: map['passTitle'] ?? '',
-      vaultId: map['vaultId'] ?? 0,
-      createdAt: map['createdAt'] ?? 0,
-      updatedAt: map['updatedAt'] ?? 0,
-      notes: (map['notes'] as List<dynamic>?)
-              ?.map((note) => SyncedNote.fromMap(note))
-              .toList() ??
-          [],
-      lastModifiedBy: map['lastModifiedBy'] ?? '',
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'passId': passId,
-      'passTitle': passTitle,
-      'vaultId': vaultId,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
-      'notes': notes.map((note) => note.toMap()).toList(),
-      'lastModifiedBy': lastModifiedBy,
-    };
-  }
-}
-
-class SyncedNote {
-  final int noteId;
-  final String description;
-  final String type;
-  final int passId;
-  final int createdAt;
-  final int updatedAt;
-
-  SyncedNote({
-    required this.noteId,
-    required this.description,
-    required this.type,
-    required this.passId,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory SyncedNote.fromMap(Map<String, dynamic> map) {
-    return SyncedNote(
-      noteId: map['noteId'] ?? 0,
-      description: map['description'] ?? '',
-      type: map['type'] ?? '',
-      passId: map['passId'] ?? 0,
-      createdAt: map['createdAt'] ?? 0,
-      updatedAt: map['updatedAt'] ?? 0,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'noteId': noteId,
-      'description': description,
-      'type': type,
-      'passId': passId,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
-    };
-  }
 }

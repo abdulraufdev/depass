@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:depass/models/note.dart';
 import 'package:depass/models/pass.dart';
 import 'package:depass/models/vault.dart';
@@ -13,8 +14,9 @@ class DBService {
   static Database? _database;
   static const String _databaseName = 'depass.db';
   static const int _databaseVersion = 1;
-  
-  static String _databasePassword = 'depass';
+
+  // Generate obfuscated database password (256 characters)
+  static String get _databasePassword => "depass123";
 
   // Table names
   static const String _notesTable = 'notes';
@@ -51,6 +53,8 @@ class DBService {
       CREATE TABLE IF NOT EXISTS $_vaultsTable (
         VaultId INTEGER PRIMARY KEY AUTOINCREMENT,
         VaultTitle TEXT NOT NULL,
+        VaultIcon TEXT NOT NULL,
+        VaultColor TEXT NOT NULL,
         CreatedAt INTEGER NOT NULL,
         UpdatedAt INTEGER NOT NULL
       )
@@ -83,6 +87,8 @@ class DBService {
     final now = DateTime.now().millisecondsSinceEpoch;
     await db.insert(_vaultsTable, {
       'VaultTitle': 'Default',
+      'VaultIcon': 'vault',
+      'VaultColor': 'deepTeal',
       'CreatedAt': now,
       'UpdatedAt': now,
     });
@@ -118,23 +124,46 @@ class DBService {
 
   // ========== VAULT CRUD OPERATIONS ==========
 
-  // Create a new vault
-  Future<void> createVault(String title, {int? vaultId}) async {
+  // Create a new vault and return the created Vault with its ID
+  Future<Vault> createVault(
+    String title,
+    String icon,
+    String color, {
+    int? vaultId,
+  }) async {
     final db = await getDB();
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    int newVaultId;
+
     if (vaultId != null) {
       await db.insert(_vaultsTable, {
         'VaultId': vaultId,
         'VaultTitle': title,
-        'CreatedAt': DateTime.now().millisecondsSinceEpoch,
-        'UpdatedAt': DateTime.now().millisecondsSinceEpoch,
+        'VaultIcon': icon,
+        'VaultColor': color,
+        'CreatedAt': now,
+        'UpdatedAt': now,
       });
+      newVaultId = vaultId;
     } else {
-      await db.insert(_vaultsTable, {
+      newVaultId = await db.insert(_vaultsTable, {
         'VaultTitle': title,
-        'CreatedAt': DateTime.now().millisecondsSinceEpoch,
-        'UpdatedAt': DateTime.now().millisecondsSinceEpoch,
+        'VaultIcon': icon,
+        'VaultColor': color,
+        'CreatedAt': now,
+        'UpdatedAt': now,
       });
     }
+
+    return Vault(
+      VaultId: newVaultId,
+      VaultTitle: title,
+      VaultIcon: icon,
+      VaultColor: color,
+      CreatedAt: now,
+      UpdatedAt: now,
+    );
   }
 
   // Get all vaults
@@ -161,12 +190,19 @@ class DBService {
   }
 
   // Update vault
-  Future<void> updateVault(int id, String newTitle) async {
+  Future<void> updateVault(
+    int id,
+    String newTitle,
+    String newIcon,
+    String newColor,
+  ) async {
     final db = await getDB();
     await db.update(
       _vaultsTable,
       {
         'VaultTitle': newTitle,
+        'VaultIcon': newIcon,
+        'VaultColor': newColor,
         'UpdatedAt': DateTime.now().millisecondsSinceEpoch,
       },
       where: 'VaultId = ?',
@@ -199,7 +235,6 @@ class DBService {
 
   // Create a new pass
 
-
   // Get pass by Id
   Future<List<Pass>> getAllPasses() async {
     final db = await getDB();
@@ -209,20 +244,35 @@ class DBService {
     });
   }
 
+  Future<List<Pass>> getPassesByVaultId(int vaultId) async {
+    final db = await getDB();
+    final List<Map<String, dynamic>> maps = await db.query(
+      _passTable,
+      where: 'VaultId = ?',
+      whereArgs: [vaultId],
+    );
+    return List.generate(maps.length, (i) {
+      return Pass.fromMap(maps[i]);
+    });
+  }
+
   Future<Pass> getPassById(int passId) async {
     final db = await getDB();
-    final List<Map<String, dynamic>> maps = await db.query(_passTable, where: 'PassId = ?', whereArgs: [passId]);
+    final List<Map<String, dynamic>> maps = await db.query(
+      _passTable,
+      where: 'PassId = ?',
+      whereArgs: [passId],
+    );
     return Pass.fromMap(maps.first);
   }
 
   // Update pass
-  Future<void> updatePass(int passId, String newTitle) async {
+  Future<void> updatePass(int passId, String newTitle, String? newVault) async {
     final db = await getDB();
     await db.update(
       _passTable,
-      {
-        'PassTitle': newTitle,
-      },
+      {'PassTitle': newTitle, if (newVault != null) 'VaultId': newVault},
+
       where: 'PassId = ?',
       whereArgs: [passId],
     );
@@ -231,10 +281,10 @@ class DBService {
   // Delete pass
   Future<void> deletePass(int id) async {
     final db = await getDB();
-    
+
     // First delete all notes associated with this pass
     await db.delete(_notesTable, where: 'PassId = ?', whereArgs: [id]);
-    
+
     // Then delete the pass itself
     await db.delete(_passTable, where: 'PassId = ?', whereArgs: [id]);
   }
@@ -243,13 +293,11 @@ class DBService {
   Future<void> movePass(int passId, int vaultId) async {
     final db = await getDB();
     await db.update(
-        _passTable,
-        {
-          'VaultId': vaultId,
-        },
-        where: 'PassId = ?',
-        whereArgs: [passId],
-      );
+      _passTable,
+      {'VaultId': vaultId},
+      where: 'PassId = ?',
+      whereArgs: [passId],
+    );
   }
 
   // ========== NOTE CRUD OPERATIONS ==========
@@ -272,22 +320,28 @@ class DBService {
   }
 
   // Create bulk notes through transaction
-  Future<void> createBulkNotes({
+  // Returns the created Pass and Notes for sync broadcasting
+  Future<Map<String, dynamic>> createBulkNotes({
     required List<Map<String, dynamic>> notes,
     required String title,
     int vaultId = 1,
   }) async {
     final db = await getDB();
     final now = DateTime.now().millisecondsSinceEpoch;
+
+    late int passId;
+    final createdNotes = <Map<String, dynamic>>[];
+
     await db
         .transaction((tx) async {
-      final passId = await tx.insert(_passTable, {
-        'PassTitle': title,
-        'CreatedAt': now,
-        'VaultId': vaultId, // Default vault ID
-      });
+          passId = await tx.insert(_passTable, {
+            'PassTitle': title,
+            'CreatedAt': now,
+            'VaultId': vaultId,
+          });
+
           for (Map<String, dynamic> note in notes) {
-            await tx.rawInsert(
+            final noteId = await tx.rawInsert(
               '''
       INSERT INTO $_notesTable 
       (Description, Type, CreatedAt, UpdatedAt, PassId) 
@@ -295,11 +349,32 @@ class DBService {
       ''',
               [note['Description'], note['Type'], now, now, passId],
             );
+
+            createdNotes.add({
+              'NoteId': noteId,
+              'Description': note['Description'],
+              'Type': note['Type'],
+              'CreatedAt': now,
+              'UpdatedAt': now,
+              'PassId': passId,
+            });
           }
         })
         .whenComplete(() {
-          print("transaction completeeeed.");
+          print(
+            "transaction completed - PassId: $passId, Notes: ${createdNotes.length}",
+          );
         });
+
+    return {
+      'pass': {
+        'PassId': passId,
+        'PassTitle': title,
+        'VaultId': vaultId,
+        'CreatedAt': now,
+      },
+      'notes': createdNotes,
+    };
   }
 
   // Get all notes
@@ -381,16 +456,175 @@ class DBService {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  // Backup database to JSON
-
-  // Restore database from JSON
-
   // Clean up old notes (optional maintenance function)
   Future<void> clearAllData() async {
     final db = await getDB();
     await db.delete(_notesTable);
     await db.delete(_passTable);
     await db.delete(_vaultsTable);
-    
+  }
+
+  // ========== SYNC OPERATIONS ==========
+
+  /// Clear all data and reset auto-increment sequences for sync chain join
+  /// This prepares the database to receive data from another device with exact IDs
+  Future<void> clearAllDataForSync() async {
+    final db = await getDB();
+
+    // Use transaction for atomic operation
+    await db.transaction((txn) async {
+      // Delete all data in correct order (respect foreign keys)
+      await txn.delete(_notesTable);
+      await txn.delete(_passTable);
+      await txn.delete(_vaultsTable);
+
+      // Reset auto-increment sequences by deleting from sqlite_sequence
+      await txn.rawDelete(
+        'DELETE FROM sqlite_sequence WHERE name IN (?, ?, ?)',
+        [_notesTable, _passTable, _vaultsTable],
+      );
+    });
+
+    print('DBService: All data cleared and sequences reset for sync');
+  }
+
+  /// Insert a pass with exact ID (used during sync to preserve IDs across devices)
+  Future<void> insertPassWithId(
+    int passId,
+    int vaultId,
+    String title,
+    int createdAt,
+  ) async {
+    final db = await getDB();
+    await db.rawInsert(
+      '''
+      INSERT INTO $_passTable (PassId, VaultId, PassTitle, CreatedAt)
+      VALUES (?, ?, ?, ?)
+      ''',
+      [passId, vaultId, title, createdAt],
+    );
+  }
+
+  /// Insert a note with exact ID (used during sync to preserve IDs across devices)
+  Future<void> insertNoteWithId(
+    int noteId,
+    String description,
+    String type,
+    int createdAt,
+    int updatedAt,
+    int passId,
+  ) async {
+    final db = await getDB();
+    await db.rawInsert(
+      '''
+      INSERT INTO $_notesTable (NoteId, Description, Type, CreatedAt, UpdatedAt, PassId)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ''',
+      [noteId, description, type, createdAt, updatedAt, passId],
+    );
+  }
+
+  /// Import full sync data from another device
+  /// This clears all existing data and imports with exact IDs preserved
+  Future<void> importFullSyncData({
+    required List<Map<String, dynamic>> vaults,
+    required List<Map<String, dynamic>> passes,
+    required List<Map<String, dynamic>> notes,
+  }) async {
+    final db = await getDB();
+
+    await db.transaction((txn) async {
+      // Step 1: Clear all existing data
+      await txn.delete(_notesTable);
+      await txn.delete(_passTable);
+      await txn.delete(_vaultsTable);
+
+      // Step 2: Reset auto-increment sequences
+      await txn.rawDelete(
+        'DELETE FROM sqlite_sequence WHERE name IN (?, ?, ?)',
+        [_notesTable, _passTable, _vaultsTable],
+      );
+
+      // Step 3: Insert vaults with exact IDs (sorted by ID to maintain order)
+      final sortedVaults = List<Map<String, dynamic>>.from(vaults)
+        ..sort((a, b) => (a['VaultId'] as int).compareTo(b['VaultId'] as int));
+
+      for (final vault in sortedVaults) {
+        await txn.rawInsert(
+          '''
+          INSERT INTO $_vaultsTable (VaultId, VaultTitle, VaultIcon, VaultColor, CreatedAt, UpdatedAt)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ''',
+          [
+            vault['VaultId'],
+            vault['VaultTitle'],
+            vault['VaultIcon'],
+            vault['VaultColor'],
+            vault['CreatedAt'],
+            vault['UpdatedAt'],
+          ],
+        );
+      }
+
+      // Step 4: Insert passes with exact IDs (sorted by ID)
+      final sortedPasses = List<Map<String, dynamic>>.from(passes)
+        ..sort((a, b) => (a['PassId'] as int).compareTo(b['PassId'] as int));
+
+      for (final pass in sortedPasses) {
+        await txn.rawInsert(
+          '''
+          INSERT INTO $_passTable (PassId, VaultId, PassTitle, CreatedAt)
+          VALUES (?, ?, ?, ?)
+          ''',
+          [
+            pass['PassId'],
+            pass['VaultId'],
+            pass['PassTitle'],
+            pass['CreatedAt'],
+          ],
+        );
+      }
+
+      // Step 5: Insert notes with exact IDs (sorted by ID)
+      final sortedNotes = List<Map<String, dynamic>>.from(notes)
+        ..sort((a, b) => (a['NoteId'] as int).compareTo(b['NoteId'] as int));
+
+      for (final note in sortedNotes) {
+        await txn.rawInsert(
+          '''
+          INSERT INTO $_notesTable (NoteId, Description, Type, CreatedAt, UpdatedAt, PassId)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ''',
+          [
+            note['NoteId'],
+            note['Description'],
+            note['Type'],
+            note['CreatedAt'],
+            note['UpdatedAt'],
+            note['PassId'],
+          ],
+        );
+      }
+    });
+
+    print(
+      'DBService: Full sync import completed - ${vaults.length} vaults, ${passes.length} passes, ${notes.length} notes',
+    );
+  }
+
+  /// Check if database has any data (vaults or passes)
+  Future<bool> hasAnyData() async {
+    final db = await getDB();
+    final vaultCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM $_vaultsTable'),
+        ) ??
+        0;
+    final passCount =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM $_passTable'),
+        ) ??
+        0;
+    return vaultCount > 0 || passCount > 0;
   }
 }

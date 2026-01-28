@@ -19,29 +19,29 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
   final DBService _databaseService = DBService.instance;
   int _selectedIndex = 0;
   late final TextEditingController _titleController = TextEditingController();
-  List<TextEditingController> _emailControllers = [
-    TextEditingController(),
-  ];
-  List<TextEditingController> _passwordControllers = [
-    TextEditingController(),
-  ];
-  List<TextEditingController> _textControllers = [
-    TextEditingController(),
-  ];
+  List<TextEditingController> _emailControllers = [TextEditingController()];
+  List<TextEditingController> _passwordControllers = [TextEditingController()];
+  List<TextEditingController> _textControllers = [TextEditingController()];
   List<TextEditingController> _websiteControllers = [];
   bool _isLoading = false;
-  
+
+  // Track the last added field for focus
+
   // Validation error messages
   Map<String, String> _validationErrors = {};
 
   // Validation methods
   bool _isValidEmail(String email) {
-    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+    return RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    ).hasMatch(email);
   }
 
   bool _isValidWebsite(String website) {
     // Allow domains with or without protocol
-    final domainRegex = RegExp(r'^(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?$');
+    final domainRegex = RegExp(
+      r'^(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?$',
+    );
     return domainRegex.hasMatch(website);
   }
 
@@ -105,13 +105,50 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final vaultProvider = Provider.of<VaultProvider>(context, listen: false);
+        final vaultProvider = Provider.of<VaultProvider>(
+          context,
+          listen: false,
+        );
         vaultProvider.loadAllVaults();
       }
     });
   }
-  
-  Future<void> _createPass() async {
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    for (var controller in _emailControllers) {
+      controller.dispose();
+    }
+    for (var controller in _passwordControllers) {
+      controller.dispose();
+    }
+    for (var controller in _textControllers) {
+      controller.dispose();
+    }
+    for (var controller in _websiteControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _showErrorDialog(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text('Error'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _createPass() async {
     setState(() {
       _isLoading = true;
     });
@@ -123,34 +160,54 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
           _isLoading = false;
         });
         _showValidationDialog();
-        return;
+        return false;
       }
 
       final vaultProvider = Provider.of<VaultProvider>(context, listen: false);
       final vaults = vaultProvider.allVaults;
-      
+
       if (vaults == null || vaults.isEmpty) {
         setState(() {
           _isLoading = false;
         });
-        _showErrorDialog('No vaults available');
-        return;
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: Text('No vaults available'),
+            content: Text("Add a new vault to create the password."),
+            actions: [
+              CupertinoDialogAction(
+                child: Text('OK'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+        return false;
       }
-      
+
       List<TextEditingController> controllers = [
         ..._emailControllers,
         ..._passwordControllers,
         ..._textControllers,
-        ..._websiteControllers
-    ];
+        ..._websiteControllers,
+      ];
       late List<Map<String, dynamic>> allNotes;
-      if(controllers.isNotEmpty){
-        allNotes = controllers.map((controller) => {
-          'Description': controller.text.trim(),
-          'Type': _emailControllers.contains(controller) ? 'email' :
-                      _passwordControllers.contains(controller) ? 'password' :
-                      _textControllers.contains(controller) ? 'text' : 'website',
-        }).toList();
+      if (controllers.isNotEmpty) {
+        allNotes = controllers
+            .map(
+              (controller) => {
+                'Description': controller.text.trim(),
+                'Type': _emailControllers.contains(controller)
+                    ? 'email'
+                    : _passwordControllers.contains(controller)
+                    ? 'password'
+                    : _textControllers.contains(controller)
+                    ? 'text'
+                    : 'website',
+              },
+            )
+            .toList();
       } else {
         allNotes = [];
       }
@@ -159,21 +216,23 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
       await _databaseService.createBulkNotes(
         notes: allNotes,
         title: _titleController.text.trim(),
-        vaultId: vaults[_selectedIndex].VaultId
+        vaultId: vaults[_selectedIndex].VaultId,
       );
-      
+
       // Refresh provider data after successful creation
       final passwordProvider = context.read<PasswordProvider>();
       await passwordProvider.loadAllPasses();
-      
+
       setState(() {
         _isLoading = false;
       });
-    } catch(e){
+      return true;
+    } catch (e) {
       setState(() {
         _isLoading = false;
       });
       _showErrorDialog('Error while creating password: $e');
+      return false;
     }
   }
 
@@ -194,23 +253,10 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
     );
   }
 
-  void _showErrorDialog(String message) {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text('Error'),
-        content: Text(message),
-        actions: [
-          CupertinoDialogAction(
-            child: Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _addField(String fieldType) {
+    // Unfocus current field and close keyboard
+    FocusScope.of(context).unfocus();
+
     setState(() {
       switch (fieldType) {
         case 'Email':
@@ -254,7 +300,11 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
     });
   }
 
-  Widget _buildFieldSection(String title, List<TextEditingController> controllers, bool canRemove) {
+  Widget _buildFieldSection(
+    String title,
+    List<TextEditingController> controllers,
+    bool canRemove,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -263,7 +313,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
         ...List.generate(controllers.length, (index) {
           final fieldKey = '${title.toLowerCase()}_$index';
           final hasError = _validationErrors.containsKey(fieldKey);
-          
+
           return Padding(
             padding: EdgeInsets.only(bottom: 8),
             child: Column(
@@ -274,16 +324,26 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                     Expanded(
                       child: CupertinoTextField(
                         controller: controllers[index],
-                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        placeholder: title == 'Email' 
-                          ? "example@domain.com"
-                          : title == 'Website'
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        placeholder: title == 'Email'
+                            ? "example@domain.com"
+                            : title == 'Website'
                             ? "example.com"
                             : "Your ${title.toLowerCase()}...",
                         decoration: BoxDecoration(
-                          border: hasError 
-                            ? Border.all(color: CupertinoColors.systemRed, width: 1)
-                            : Border.all(color: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground),
+                          border: hasError
+                              ? Border.all(
+                                  color: CupertinoColors.systemRed,
+                                  width: 1,
+                                )
+                              : Border.all(
+                                  color: DepassConstants.isDarkMode
+                                      ? DepassConstants.darkFadedBackground
+                                      : DepassConstants.lightFadedBackground,
+                                ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         onChanged: (_) {
@@ -329,26 +389,25 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
       child: CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
           transitionBetweenRoutes: false,
-          padding: EdgeInsetsDirectional.symmetric(vertical: 8.0, horizontal: 12.0),
+          padding: EdgeInsetsDirectional.symmetric(
+            vertical: 8.0,
+            horizontal: 12.0,
+          ),
           leading: CupertinoButton(
             padding: EdgeInsets.zero,
             child: Icon(LucideIcons.x),
             onPressed: () {
               Navigator.of(context).pushReplacement(
-                CupertinoPageRoute(
-                  builder: (context) => const App(),
-                ),
+                CupertinoPageRoute(builder: (context) => App()),
               );
             },
           ),
           trailing: CupertinoButton(
             onPressed: () async {
-              await _createPass();
-              if (_validationErrors.isEmpty) {
+              final success = await _createPass();
+              if (success) {
                 Navigator.of(context).pushReplacement(
-                  CupertinoPageRoute(
-                    builder: (context) => const App(),
-                  ),
+                  CupertinoPageRoute(builder: (context) => App()),
                 );
               }
             },
@@ -358,189 +417,287 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
         ),
         child: Padding(
           padding: EdgeInsets.all(12.0),
-          child: _isLoading 
-            ? Center(child: CupertinoActivityIndicator())
-            : SingleChildScrollView(
-                child: Column(
-                  spacing: 24,
-                  children: [
-                    Consumer<VaultProvider>(
-                      builder: (context, vaultProvider, child) {
-                        final vaults = vaultProvider.allVaults ?? [];
-                        
-                        // Ensure selected index is within bounds
-                        if (_selectedIndex >= vaults.length) {
-                          _selectedIndex = vaults.isNotEmpty ? 0 : 0;
-                        }
-                        
-                        return CupertinoButton(
-                          sizeStyle: CupertinoButtonSize.small,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 4),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(100),
-                              border: Border.all(color: CupertinoColors.systemGrey4),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              spacing: 2,
-                              children: [
-                                Text(vaults.isNotEmpty ? vaults[_selectedIndex].VaultTitle : "No Vaults", style: DepassTextTheme.label), 
-                                Icon(LucideIcons.chevronDown)
-                              ],
-                            ),
-                          ),
-                          onPressed: () {
-                            if (vaults.isEmpty) return;
-                            
-                            showCupertinoModalPopup(
-                              context: context,
-                              builder: (context) {
-                                return SizedBox(
-                                  height: 200.0,
-                                  child: CupertinoPicker(
-                                    scrollController: FixedExtentScrollController(initialItem: _selectedIndex),
-                                    backgroundColor: DepassConstants.isDarkMode ? DepassConstants.darkBackground : DepassConstants.lightBackground,
-                                    itemExtent: 42.0,
-                                    onSelectedItemChanged: (int index) {
-                                      setState(() {
-                                        _selectedIndex = index;
-                                      });
-                                    },
-                                    children: vaults.map((vault) => Center(
-                                      child: Text(
-                                        vault.VaultTitle,
-                                        style: DepassTextTheme.boldLabel,
-                                      ),
-                                    )).toList()
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        );
-                      }
-                    ),
-                    
-                    // Title field
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Title', style: TextStyle(fontWeight: FontWeight.bold)),
-                        SizedBox(height: 8),
-                        CupertinoTextField(
-                          controller: _titleController,
-                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          placeholder: "Your title...",
-                          decoration: BoxDecoration(
-                            border: _validationErrors.containsKey('title') 
-                              ? Border.all(color: CupertinoColors.systemRed, width: 1)
-                              : Border.all(color: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          onChanged: (_) {
-                            if (_validationErrors.containsKey('title')) {
-                              setState(() {
-                                _validationErrors.remove('title');
-                              });
-                            }
-                          },
-                        ),
-                        if (_validationErrors.containsKey('title'))
-                          Padding(
-                            padding: EdgeInsets.only(top: 4, left: 14),
-                            child: Text(
-                              _validationErrors['title']!,
-                              style: TextStyle(
-                                color: CupertinoColors.systemRed,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    
-                    // Email fields
-                    _buildFieldSection('Email', _emailControllers, true),
-                    
-                    // Password fields
-                    _buildFieldSection('Password', _passwordControllers, true),
-                    
-                    // Text fields
-                    _buildFieldSection('Text', _textControllers, true),
-                    
-                    // Website fields (if any)
-                    if (_websiteControllers.isNotEmpty) ...[
-                      _buildFieldSection('Website', _websiteControllers, true),
+          child: _isLoading
+              ? Center(child: CupertinoActivityIndicator())
+              : SingleChildScrollView(
+                  child: Column(
+                    spacing: 24,
+                    children: [
+                      Consumer<VaultProvider>(
+                        builder: (context, vaultProvider, child) {
+                          final vaults = vaultProvider.allVaults ?? [];
 
-                    ],
-                    
-                    // Add button
-                    CupertinoButton.filled(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Add', style: DepassTextTheme.button.copyWith(
-                            fontSize: 16
-                          ),),
-                          SizedBox(width: 4),
-                          Icon(LucideIcons.plus, color: DepassConstants.isDarkMode ? DepassConstants.darkButtonText : DepassConstants.lightButtonText,),
-                        ],
-                      ), 
-                      onPressed: () {
-                        showCupertinoModalPopup(
-                          context: context, 
-                          builder: (context) {
-                            return CupertinoActionSheet(
-                              title: Text('Add New Item', style: TextStyle(fontFamily: 'Inter'),),
-                              actions: [
-                                CupertinoActionSheetAction(
-                                  child: Text('Text', style: DepassTextTheme.dropdown),
-                                  onPressed: () {
-                                    _addField('Text');
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                                CupertinoActionSheetAction(
-                                  child: Text('Password', style: DepassTextTheme.dropdown),
-                                  onPressed: () {
-                                    _addField('Password');
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                                CupertinoActionSheetAction(
-                                  child: Text('Email', style: DepassTextTheme.dropdown),
-                                  onPressed: () {
-                                    _addField('Email');
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                                CupertinoActionSheetAction(
-                                  child: Text('Website', style: DepassTextTheme.dropdown),
-                                  onPressed: () {
-                                    _addField('Website');
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              ],
-                              cancelButton: CupertinoActionSheetAction(
-                                
-                                child: Text('Cancel', style: TextStyle(fontFamily: 'Inter'),),
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                              ),
-                            );
+                          // Ensure selected index is within bounds
+                          if (_selectedIndex >= vaults.length) {
+                            _selectedIndex = vaults.isNotEmpty ? 0 : 0;
                           }
-                        );
-                      }
-                    ),
-                    SizedBox(
-                      height: 32,
-                    )
-                  ],
+
+                          return CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            child: Container(
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(100),
+                                color: vaults.isNotEmpty
+                                    ? DepassConstants
+                                          .profileColors[vaults[_selectedIndex]
+                                              .VaultColor]!
+                                          .withValues(alpha: 0.15)
+                                    : CupertinoColors.inactiveGray.withValues(
+                                        alpha: 0.15,
+                                      ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    spacing: 8,
+                                    children: [
+                                      if (vaults.isNotEmpty)
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            color:
+                                                DepassConstants
+                                                    .profileColors[vaults[_selectedIndex]
+                                                    .VaultColor] ??
+                                                DepassConstants.deepTeal,
+                                            borderRadius: BorderRadius.circular(
+                                              100,
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Icon(
+                                              DepassConstants
+                                                      .profileIcons[vaults[_selectedIndex]
+                                                      .VaultIcon] ??
+                                                  LucideIcons.vault,
+                                              color: CupertinoColors.white
+                                                  .withValues(alpha: 0.9),
+                                              size: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      Text(
+                                        vaults.isNotEmpty
+                                            ? vaults[_selectedIndex].VaultTitle
+                                            : "No Vaults",
+                                        style: DepassTextTheme.dropdown,
+                                      ),
+                                    ],
+                                  ),
+                                  Icon(LucideIcons.chevronDown),
+                                ],
+                              ),
+                            ),
+                            onPressed: () {
+                              if (vaults.isEmpty) return;
+
+                              showCupertinoModalPopup(
+                                context: context,
+                                builder: (context) {
+                                  return SizedBox(
+                                    height: 200.0,
+                                    child: CupertinoPicker(
+                                      scrollController:
+                                          FixedExtentScrollController(
+                                            initialItem: _selectedIndex,
+                                          ),
+                                      backgroundColor:
+                                          DepassConstants.isDarkMode
+                                          ? DepassConstants.darkBackground
+                                          : DepassConstants.lightBackground,
+                                      itemExtent: 42.0,
+                                      onSelectedItemChanged: (int index) {
+                                        setState(() {
+                                          _selectedIndex = index;
+                                        });
+                                      },
+                                      children: vaults
+                                          .map(
+                                            (vault) => Center(
+                                              child: Text(
+                                                vault.VaultTitle,
+                                                style:
+                                                    DepassTextTheme.boldLabel,
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+
+                      // Title field
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Title',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 8),
+                          CupertinoTextField(
+                            controller: _titleController,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            placeholder: "Your title...",
+                            decoration: BoxDecoration(
+                              border: _validationErrors.containsKey('title')
+                                  ? Border.all(
+                                      color: CupertinoColors.systemRed,
+                                      width: 1,
+                                    )
+                                  : Border.all(
+                                      color: DepassConstants.isDarkMode
+                                          ? DepassConstants.darkFadedBackground
+                                          : DepassConstants
+                                                .lightFadedBackground,
+                                    ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            onChanged: (_) {
+                              if (_validationErrors.containsKey('title')) {
+                                setState(() {
+                                  _validationErrors.remove('title');
+                                });
+                              }
+                            },
+                          ),
+                          if (_validationErrors.containsKey('title'))
+                            Padding(
+                              padding: EdgeInsets.only(top: 4, left: 14),
+                              child: Text(
+                                _validationErrors['title']!,
+                                style: TextStyle(
+                                  color: CupertinoColors.systemRed,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      // Email fields
+                      _buildFieldSection('Email', _emailControllers, true),
+
+                      // Password fields
+                      _buildFieldSection(
+                        'Password',
+                        _passwordControllers,
+                        true,
+                      ),
+
+                      // Text fields
+                      _buildFieldSection('Text', _textControllers, true),
+
+                      // Website fields (if any)
+                      if (_websiteControllers.isNotEmpty) ...[
+                        _buildFieldSection(
+                          'Website',
+                          _websiteControllers,
+                          true,
+                        ),
+                      ],
+
+                      // Add button
+                      CupertinoButton.filled(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Add',
+                              style: DepassTextTheme.button.copyWith(
+                                fontSize: 16,
+                              ),
+                            ),
+                            SizedBox(width: 4),
+                            Icon(
+                              LucideIcons.plus,
+                              color: DepassConstants.isDarkMode
+                                  ? DepassConstants.darkButtonText
+                                  : DepassConstants.lightButtonText,
+                            ),
+                          ],
+                        ),
+                        onPressed: () {
+                          showCupertinoModalPopup(
+                            context: context,
+                            builder: (context) {
+                              return CupertinoActionSheet(
+                                title: Text(
+                                  'Add New Item',
+                                  style: TextStyle(fontFamily: 'Inter'),
+                                ),
+                                actions: [
+                                  CupertinoActionSheetAction(
+                                    child: Text(
+                                      'Text',
+                                      style: DepassTextTheme.dropdown,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _addField('Text');
+                                    },
+                                  ),
+                                  CupertinoActionSheetAction(
+                                    child: Text(
+                                      'Password',
+                                      style: DepassTextTheme.dropdown,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _addField('Password');
+                                    },
+                                  ),
+                                  CupertinoActionSheetAction(
+                                    child: Text(
+                                      'Email',
+                                      style: DepassTextTheme.dropdown,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _addField('Email');
+                                    },
+                                  ),
+                                  CupertinoActionSheetAction(
+                                    child: Text(
+                                      'Website',
+                                      style: DepassTextTheme.dropdown,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _addField('Website');
+                                    },
+                                  ),
+                                ],
+                                cancelButton: CupertinoActionSheetAction(
+                                  child: Text(
+                                    'Cancel',
+                                    style: TextStyle(fontFamily: 'Inter'),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      SizedBox(height: 32),
+                    ],
+                  ),
                 ),
-              ),
         ),
       ),
     );

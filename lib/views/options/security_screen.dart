@@ -140,7 +140,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
                       ),
                   padding: EdgeInsetsGeometry.symmetric(vertical: 20),
                 )
-              : Text('No biometric available');
+              : CupertinoListTile(
+                  title: Text('No Biometric available'),
+                  onTap: null,
+                  padding: EdgeInsetsGeometry.symmetric(vertical: 20),
+              );
         }
       },
     ),

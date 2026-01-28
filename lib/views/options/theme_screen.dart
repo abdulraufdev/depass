@@ -12,7 +12,7 @@ class ThemeScreen extends StatefulWidget {
 }
 
 class _ThemeScreenState extends State<ThemeScreen> {
-  DepassThemeMode _selectedTheme = DepassThemeMode.system;
+  DepassThemeMode _selectedTheme = DepassThemeMode.light;
   
   @override
   void initState() {
@@ -56,10 +56,6 @@ class _ThemeScreenState extends State<ThemeScreen> {
                 DepassThemeMode.dark: Padding(
                   padding: EdgeInsets.all(12.0), 
                   child: Text('Dark'),
-                ),
-                DepassThemeMode.system: Padding(
-                  padding: EdgeInsets.all(12.0),
-                  child: Text('System'),
                 ),
               },
               groupValue: _selectedTheme,
