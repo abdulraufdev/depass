@@ -13,27 +13,31 @@ dependencies:
   flutter:
     sdk: flutter
   file_picker: ^10.3.3
-  flutter_mailer: ^3.0.1
   flutter_secure_storage: ^9.2.4
-  flutter_svg: ^2.2.1
-  flutter_webrtc: ^1.2.0
-  local_auth: ^2.3.0
+  flutter_svg: ^2.2.2
+  flutter_local_notifications: ^19.5.0
+  local_auth: ^3.0.0
   lucide_icons_flutter: ^3.0.9
   path: ^1.9.1
   path_provider: ^2.1.5
+  permission_handler: ^12.0.1
   provider: ^6.1.5+1
   shared_preferences: ^2.5.3
   random_string: ^2.3.1
   sqflite_sqlcipher: ^3.4.0
   bip39: ^1.0.6
-  device_info_plus: ^12.1.0
   url_launcher: ^6.3.2
+  http: ^1.6.0
+  # Sync Chain dependencies
+  nearby_connections: ^4.3.0
+  device_info_plus: ^12.3.0
+  flutter_foreground_task: ^8.17.0
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 flutter_icons:
   android: true
@@ -51,3 +55,7 @@ flutter:
     - assets/images/depass-full.svg
     - assets/images/github.svg
     - assets/images/depass.svg
+    - assets/images/mobile-screen.svg
+    - assets/images/arrow-create.svg
+    - assets/images/vault-illustration.svg
+    - assets/images/welcome-illustration.svg

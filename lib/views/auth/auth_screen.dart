@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/auth_service.dart';
 import '../app.dart';
 
@@ -28,6 +30,8 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _biometricAvailable = false;
   bool _biometricEnabled = false;
   List<BiometricType> _availableBiometrics = [];
+
+  static const String _welcomeOnboardingKey = 'hasSeenWelcomeOnboarding';
 
   @override
   void initState() {
@@ -61,6 +65,11 @@ class _AuthScreenState extends State<AuthScreen> {
         _isLoading = false;
       });
 
+      // Show welcome onboarding if this is the first time (setting up)
+      if (_isSettingUp) {
+        _checkAndShowWelcomeOnboarding();
+      }
+
       // Try device authentication if enabled and available
       if (!_isSettingUp && _biometricEnabled && _biometricAvailable) {
         _authenticateWithBiometrics();
@@ -69,6 +78,27 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() => _isLoading = false);
       _showErrorSnackBar(context, 'Failed to initialize authentication: $e');
     }
+  }
+
+  Future<void> _checkAndShowWelcomeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool(_welcomeOnboardingKey) ?? false;
+
+    if (!hasSeenOnboarding && mounted) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (mounted) {
+        _showWelcomeDialog();
+        await prefs.setBool(_welcomeOnboardingKey, true);
+      }
+    }
+  }
+
+  void _showWelcomeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _WelcomeOnboardingDialog(),
+    );
   }
 
   Future<void> _authenticateWithPassword() async {
@@ -465,6 +495,170 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _WelcomeOnboardingDialog extends StatefulWidget {
+  @override
+  State<_WelcomeOnboardingDialog> createState() =>
+      _WelcomeOnboardingDialogState();
+}
+
+class _WelcomeOnboardingDialogState extends State<_WelcomeOnboardingDialog> {
+  double _opacity = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        setState(() => _opacity = 1.0);
+      }
+    });
+  }
+
+  void _closeDialog() {
+    setState(() => _opacity = 0.0);
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: AnimatedOpacity(
+        opacity: _opacity,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        child: Dialog(
+          backgroundColor: DepassConstants.isDarkMode
+              ? DepassConstants.darkCardBackground
+              : DepassConstants.lightCardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Illustration
+                SvgPicture.asset(
+                  'assets/images/welcome-illustration.svg',
+                  width: 160,
+                  height: 160,
+                ),
+                const SizedBox(height: 24),
+                // Title
+                Text(
+                  'Welcome to Depass',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: DepassConstants.isDarkMode
+                        ? DepassConstants.darkText
+                        : DepassConstants.lightText,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                // Description
+                Text(
+                  'Depass is your secure, offline-first password manager. Unlike cloud-based alternatives, your passwords never leave your device unless you choose to sync them—giving you complete control over your sensitive data.',
+                  style: TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    color: DepassConstants.isDarkMode
+                        ? DepassConstants.darkText.withValues(alpha: 0.7)
+                        : DepassConstants.lightText.withValues(alpha: 0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                // Features hint
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: DepassConstants.isDarkMode
+                        ? DepassConstants.darkBarBackground
+                        : DepassConstants.lightBarBackground,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildFeatureRow(
+                        LucideIcons.shieldCheck,
+                        'Fully encrypted',
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFeatureRow(
+                        LucideIcons.wifiOff,
+                        'Works completely offline',
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFeatureRow(
+                        LucideIcons.refreshCcw,
+                        'Sync with family via Sync Chain',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Get Started Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _closeDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DepassConstants.isDarkMode
+                          ? DepassConstants.darkPrimary
+                          : DepassConstants.lightPrimary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text('Get Started', style: DepassTextTheme.button),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: DepassConstants.isDarkMode
+              ? DepassConstants.darkText
+              : DepassConstants.lightText,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: DepassConstants.isDarkMode
+                  ? DepassConstants.darkText
+                  : DepassConstants.lightText,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

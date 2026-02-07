@@ -1,4 +1,5 @@
 import 'package:depass/utils/constants.dart';
+import 'package:depass/views/encryption/encryption.dart';
 import 'package:depass/views/options/about_screen.dart';
 import 'package:depass/views/options/backup_sync.dart';
 import 'package:depass/views/options/generate_password.dart';
@@ -53,6 +54,22 @@ class CustomPopup extends StatelessWidget {
                 );
               },
             ),
+            CupertinoListTile(
+              title: Text(
+                'Encryption tools',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              padding: EdgeInsets.zero,
+              leading: Icon(LucideIcons.lockKeyhole),
+              onTap: () {
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) => const EncryptionScreen(),
+                  ),
+                );
+              },
+            ),
+
             CupertinoListTile(
               title: Text(
                 'Theme',

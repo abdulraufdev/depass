@@ -165,15 +165,11 @@ class _EncryptionScreenState extends State<EncryptionScreen> {
         backgroundColor: DepassConstants.isDarkMode
             ? DepassConstants.darkBarBackground
             : DepassConstants.lightBarBackground,
-        leading: Text(
-          'Text Encryption',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
-          onPressed: _clearFields,
+          onPressed: _showEncryptionInfoDialog,
           child: Icon(
-            LucideIcons.eraser,
+            LucideIcons.circleQuestionMark,
             color: DepassConstants.isDarkMode
                 ? DepassConstants.darkText
                 : DepassConstants.lightText,
@@ -191,6 +187,16 @@ class _EncryptionScreenState extends State<EncryptionScreen> {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              Row(
+                children: [
+                  Text(
+                    'Text Encryption',
+                    style: DepassTextTheme.heading1,
+                    textAlign: TextAlign.left,
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
               // Mode Selection
               _buildSectionTitle('Mode'),
               const SizedBox(height: 8),
@@ -406,26 +412,38 @@ class _EncryptionScreenState extends State<EncryptionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Output'),
-                  SizedBox(height: 8, width: double.infinity,),
-                  _outputController.text.isEmpty ? 
-                  Text('Output will appear here...',style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),) :
-                  Text(_outputController.text),
-                  SizedBox(height: 16, width: double.infinity,),
+                  SizedBox(height: 8, width: double.infinity),
+                  _outputController.text.isEmpty
+                      ? Text(
+                          'Output will appear here...',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.grey[600]),
+                        )
+                      : Text(_outputController.text),
+                  SizedBox(height: 16, width: double.infinity),
+                  CupertinoButton.tinted(
+                    onPressed: _clearFields,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      spacing: 8,
+                      children: [
+                        Icon(LucideIcons.eraser, size: 20),
+                        Text("Clear all fields", style: DepassTextTheme.label),
+                      ],
+                    ),
+                  ),
                   if (_outputController.text.isNotEmpty) ...[
                     SizedBox(width: 8),
                     CupertinoButton(
                       alignment: AlignmentGeometry.center,
-                      color: DepassConstants.isDarkMode ? DepassConstants.darkFadedBackground : DepassConstants.lightFadedBackground,
+                      color: DepassConstants.isDarkMode
+                          ? DepassConstants.darkFadedBackground
+                          : DepassConstants.lightFadedBackground,
                       padding: const EdgeInsets.all(12),
                       onPressed: () => _copyToClipboard(_outputController.text),
                       child: Row(
                         spacing: 4,
-                        children: [
-                          Icon(LucideIcons.copy),
-                          Text('Copy')
-                        ],
+                        children: [Icon(LucideIcons.copy), Text('Copy')],
                       ),
                     ),
                   ],
@@ -549,7 +567,6 @@ class _EncryptionScreenState extends State<EncryptionScreen> {
             : DepassConstants.lightText,
       ),
       decoration: BoxDecoration(
-        
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: DepassConstants.isDarkMode
@@ -596,7 +613,10 @@ class _EncryptionScreenState extends State<EncryptionScreen> {
       context: context,
       builder: (BuildContext context) {
         return CupertinoActionSheet(
-          title: const Text('Select AES Mode', style: TextStyle(fontFamily: 'Inter'),),
+          title: const Text(
+            'Select AES Mode',
+            style: TextStyle(fontFamily: 'Inter'),
+          ),
           actions: DepassAESMode.values.map((mode) {
             return CupertinoActionSheetAction(
               onPressed: () {
@@ -605,12 +625,15 @@ class _EncryptionScreenState extends State<EncryptionScreen> {
                 });
                 Navigator.pop(context);
               },
-              child: Text(_encryptionService.getModeDescription(mode),style: DepassTextTheme.dropdown),
+              child: Text(
+                _encryptionService.getModeDescription(mode),
+                style: DepassTextTheme.dropdown,
+              ),
             );
           }).toList(),
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(fontFamily: 'Inter'),),
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'Inter')),
           ),
         );
       },
@@ -622,7 +645,10 @@ class _EncryptionScreenState extends State<EncryptionScreen> {
       context: context,
       builder: (BuildContext context) {
         return CupertinoActionSheet(
-          title: const Text('Select Key Length', style: TextStyle(fontFamily: 'Inter'),),
+          title: const Text(
+            'Select Key Length',
+            style: TextStyle(fontFamily: 'Inter'),
+          ),
           actions: AESKeyLength.values.map((length) {
             return CupertinoActionSheetAction(
               onPressed: () {
@@ -631,15 +657,188 @@ class _EncryptionScreenState extends State<EncryptionScreen> {
                 });
                 Navigator.pop(context);
               },
-              child: Text(_encryptionService.getKeyLengthDescription(length), style: DepassTextTheme.dropdown),
+              child: Text(
+                _encryptionService.getKeyLengthDescription(length),
+                style: DepassTextTheme.dropdown,
+              ),
             );
           }).toList(),
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(fontFamily: 'Inter'),),
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'Inter')),
           ),
         );
       },
+    );
+  }
+
+  void _showEncryptionInfoDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => const _EncryptionInfoDialog(),
+    );
+  }
+}
+
+class _EncryptionInfoDialog extends StatefulWidget {
+  const _EncryptionInfoDialog();
+
+  @override
+  State<_EncryptionInfoDialog> createState() => _EncryptionInfoDialogState();
+}
+
+class _EncryptionInfoDialogState extends State<_EncryptionInfoDialog> {
+  double _opacity = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        setState(() => _opacity = 1.0);
+      }
+    });
+  }
+
+  void _closeDialog() {
+    setState(() => _opacity = 0.0);
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: AnimatedOpacity(
+        opacity: _opacity,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        child: Dialog(
+          backgroundColor: DepassConstants.isDarkMode
+              ? DepassConstants.darkCardBackground
+              : DepassConstants.lightCardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Text Encryption Tools',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: DepassConstants.isDarkMode
+                        ? DepassConstants.darkText
+                        : DepassConstants.lightText,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                // Description
+                Text(
+                  'Encrypt or decrypt any text using AES encryption. Your data is processed locally on your device and never sent to any server.',
+                  style: TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    color: DepassConstants.isDarkMode
+                        ? DepassConstants.darkText.withValues(alpha: 0.7)
+                        : DepassConstants.lightText.withValues(alpha: 0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                // Features
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: DepassConstants.isDarkMode
+                        ? DepassConstants.darkFadedBackground
+                        : DepassConstants.lightFadedBackground,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildFeatureRow(
+                        LucideIcons.lock,
+                        'AES-256 encryption standard',
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFeatureRow(
+                        LucideIcons.shuffle,
+                        'Multiple AES modes (GCM, CBC, CTR)',
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFeatureRow(
+                        LucideIcons.key,
+                        'Generate secure random keys & IVs',
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFeatureRow(
+                        LucideIcons.wifiOff,
+                        '100% offline processing',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Got it Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _closeDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: DepassConstants.isDarkMode
+                          ? DepassConstants.darkPrimary
+                          : DepassConstants.lightPrimary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text('Got it', style: DepassTextTheme.button),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: DepassConstants.isDarkMode
+              ? DepassConstants.darkText
+              : DepassConstants.lightText,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: DepassConstants.isDarkMode
+                  ? DepassConstants.darkText
+                  : DepassConstants.lightText,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

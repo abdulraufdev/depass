@@ -1,5 +1,4 @@
 import 'package:depass/utils/constants.dart';
-import 'package:depass/views/encryption/encryption.dart';
 import 'package:depass/views/home/home_screen.dart';
 import 'package:depass/views/search/search_screen.dart';
 import 'package:depass/views/vault/vault_screen.dart';
@@ -35,7 +34,6 @@ class App extends StatelessWidget {
             items: [
               BottomNavigationBarItem(icon: Icon(LucideIcons.house)),
               BottomNavigationBarItem(icon: Icon(LucideIcons.package)),
-              BottomNavigationBarItem(icon: Icon(LucideIcons.lockKeyhole)),
               BottomNavigationBarItem(icon: Icon(LucideIcons.search)),
             ],
           ),
@@ -45,7 +43,6 @@ class App extends StatelessWidget {
               children: [
                 HomeScreen(onMenu: _toggleDrawer),
                 VaultScreen(),
-                EncryptionScreen(),
                 SearchScreen(),
               ],
             );
